@@ -14,6 +14,7 @@ $StartupDelayMilliseconds = 500
 $ServiceStartupSeconds = 3
 $HttpTimeoutSeconds = 5
 $LocalOnlyHosts = 'localhost', '127.0.0.1', '::1'
+$TailscaleInstallPath = Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'
 
 function Get-NtfyConfig {
     $localConfig = Join-Path $RepoRoot 'config.json'
@@ -49,10 +50,13 @@ function Assert-TailscaleConfig {
 
 function Get-TailscaleExePath {
     $command = Get-Command tailscale.exe -ErrorAction SilentlyContinue
-    if (-not $command) {
-        throw 'tailscale.exe is required on PATH.'
+    if ($command) {
+        return $command.Source
     }
-    return $command.Source
+    if (Test-Path -LiteralPath $TailscaleInstallPath) {
+        return $TailscaleInstallPath
+    }
+    throw 'tailscale.exe is required on PATH or in the standard Tailscale install path.'
 }
 
 function Assert-TailscaleReady {
