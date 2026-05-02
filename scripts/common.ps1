@@ -90,7 +90,28 @@ function Get-InstanceLogPath {
 
 function Get-ConfiguredPorts {
     $config = Get-NtfyConfig
-    return @($config.instances | ForEach-Object { [int]$_.port })
+    return @($config.instances | ForEach-Object { [int]$_.port } | Sort-Object -Unique)
+}
+
+function Get-NtfyServers {
+    $config = Get-NtfyConfig
+    $servers = @()
+    $config.instances |
+        Group-Object -Property port |
+        Sort-Object { [int]$_.Name } |
+        ForEach-Object {
+            $firstInstance = $_.Group | Select-Object -First 1
+            $servers += [pscustomobject]@{
+                Name = [string]$firstInstance.name
+                Port = [int]$_.Name
+            }
+        }
+    return $servers
+}
+
+function Get-PrimaryServerConfigPath {
+    $server = Get-NtfyServers | Select-Object -First 1
+    return Get-InstanceConfigPath $server.Name
 }
 
 function Assert-AdminShell {
@@ -109,6 +130,14 @@ function Stop-NtfyRepoProcesses {
         $listeners = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue
         foreach ($listener in $listeners) {
             $pids += [int]$listener.OwningProcess
+        }
+    }
+    $ntfyExe = Get-NtfyExePath
+    if (Test-Path -LiteralPath $ntfyExe) {
+        $repoProcesses = Get-Process -Name 'ntfy' -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -eq $ntfyExe }
+        foreach ($repoProcess in $repoProcesses) {
+            $pids += [int]$repoProcess.Id
         }
     }
     foreach ($processId in ($pids | Sort-Object -Unique)) {

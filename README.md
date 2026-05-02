@@ -1,6 +1,6 @@
 # ntfy Marmoura
 
-Tailscale-first HTTPS ntfy deployment for three Marmoura notification profiles.
+Tailscale-first HTTPS ntfy deployment for Marmoura notification topics.
 
 ## Features
 
@@ -8,6 +8,7 @@ Tailscale-first HTTPS ntfy deployment for three Marmoura notification profiles.
 - Requires Tailscale CLI, healthy Tailscale status, and MagicDNS resolution.
 - Uses `tailscale cert` for the configured Tailscale hostname.
 - Generates auth, cache, logs, and runtime configs under ignored `runtime`.
+- Runs one Tailscale HTTPS server on port `8091`.
 - Verifies Tailscale health, allowed publish, server receive, unknown-topic denial, and HTTP rejection.
 
 ## Commands
@@ -51,5 +52,7 @@ Restart optional Windows services from elevated PowerShell.
 ## Configuration
 
 Set `host` in `config.json` to the Tailscale DNS name of this machine.
+
+Use port `8091` for all topics.
 
 Localhost is not a production readiness target.

@@ -5,8 +5,20 @@
   "defaultUser": "anto",
   "anonymousPermission": "write-only",
   "instances": [
-    { "name": "main", "port": 8091, "topic": "codex-main" },
-    { "name": "a", "port": 8092, "topic": "codex-A" },
-    { "name": "b", "port": 8093, "topic": "codex-B" }
+    {
+      "name": "main",
+      "port": 8091,
+      "topic": "codex-main"
+    },
+    {
+      "name": "a",
+      "port": 8091,
+      "topic": "codex-A"
+    },
+    {
+      "name": "b",
+      "port": 8091,
+      "topic": "codex-B"
+    }
   ]
 }

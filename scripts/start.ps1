@@ -1,15 +1,14 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
-$config = Get-NtfyConfig
 $ntfyExe = Get-NtfyExePath
 if (-not (Test-Path -LiteralPath $ntfyExe)) {
     throw 'Run .\scripts\bootstrap.ps1 before starting ntfy.'
 }
 
-foreach ($instance in $config.instances) {
-    $name = [string]$instance.name
-    $port = [int]$instance.port
+foreach ($server in Get-NtfyServers) {
+    $name = [string]$server.Name
+    $port = [int]$server.Port
     $configPath = Get-InstanceConfigPath $name
     if (-not (Test-Path -LiteralPath $configPath)) {
         throw "Missing generated server config: $configPath"
@@ -36,4 +35,4 @@ foreach ($instance in $config.instances) {
     Start-Sleep -Milliseconds $StartupDelayMilliseconds
 }
 
-Write-Output 'Started ntfy Marmoura local instances.'
+Write-Output 'Started ntfy Marmoura servers.'

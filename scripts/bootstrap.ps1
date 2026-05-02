@@ -53,9 +53,11 @@ if (-not (Test-Path -LiteralPath $certPath) -or -not (Test-Path -LiteralPath $ke
 }
 
 $authFile = Join-Path $AuthRoot 'auth.db'
-foreach ($instance in $config.instances) {
-    $name = [string]$instance.name
-    $port = [int]$instance.port
+Get-ChildItem -Path $ConfigRoot -Filter '*.server.yml' -File -ErrorAction SilentlyContinue |
+    Remove-Item -Force
+foreach ($server in Get-NtfyServers) {
+    $name = [string]$server.Name
+    $port = [int]$server.Port
     New-Item -ItemType Directory -Force -Path (Join-Path $CacheRoot $name) | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $AttachRoot $name) | Out-Null
     $serverConfig = @(
@@ -74,6 +76,7 @@ foreach ($instance in $config.instances) {
     Set-Content -Path (Get-InstanceConfigPath $name) -Value $serverConfig -Encoding ascii
 }
 
+$primaryConfigPath = Get-PrimaryServerConfigPath
 if (-not (Test-Path -LiteralPath $authFile)) {
     New-Item -ItemType File -Force -Path $authFile | Out-Null
     $password = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
@@ -83,17 +86,17 @@ if (-not (Test-Path -LiteralPath $authFile)) {
         "password=$password"
     )
     $env:NTFY_PASSWORD = $password
-    & $ntfyExe user --config (Get-InstanceConfigPath 'main') add ([string]$config.defaultUser) | Out-Null
+    & $ntfyExe user --config $primaryConfigPath add ([string]$config.defaultUser) | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Failed to create ntfy user' }
     Remove-Item Env:\NTFY_PASSWORD -ErrorAction SilentlyContinue
 }
 
 foreach ($instance in $config.instances) {
     $topic = [string]$instance.topic
-    & $ntfyExe access --config (Get-InstanceConfigPath 'main') ([string]$config.defaultUser) $topic read-write |
+    & $ntfyExe access --config $primaryConfigPath ([string]$config.defaultUser) $topic read-write |
         Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to grant user access to $topic" }
-    & $ntfyExe access --config (Get-InstanceConfigPath 'main') everyone $topic ([string]$config.anonymousPermission) |
+    & $ntfyExe access --config $primaryConfigPath everyone $topic ([string]$config.anonymousPermission) |
         Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Failed to grant anonymous access to $topic" }
 }
