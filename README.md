@@ -7,6 +7,7 @@ Tailscale-first HTTPS ntfy deployment for Marmoura notification topics.
 - Downloads pinned official `ntfy` for Windows.
 - Requires Tailscale CLI, healthy Tailscale status, and MagicDNS resolution.
 - Uses `tailscale cert` for the configured Tailscale hostname.
+- Uses `ntfy.sh` upstream push wake-up for mobile delivery.
 - Generates auth, cache, logs, and runtime configs under ignored `runtime`.
 - Runs one Tailscale HTTPS server on port `8091`.
 - Verifies Tailscale health, allowed publish, server receive, unknown-topic denial, and HTTP rejection.

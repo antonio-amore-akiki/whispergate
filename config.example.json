@@ -2,6 +2,7 @@
   "ntfyVersion": "2.22.0",
   "host": "your-device.your-tailnet.ts.net",
   "scheme": "https",
+  "upstreamBaseUrl": "https://ntfy.sh",
   "defaultUser": "anto",
   "anonymousPermission": "write-only",
   "instances": [

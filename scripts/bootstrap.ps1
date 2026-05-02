@@ -5,6 +5,7 @@ $config = Get-NtfyConfig
 $version = [string]$config.ntfyVersion
 $baseHost = [string]$config.host
 $scheme = [string]$config.scheme
+$upstreamBaseUrl = [string]$config.upstreamBaseUrl
 Assert-TailscaleReady -HostName $baseHost
 $zipName = "ntfy_$($version)_windows_amd64.zip"
 $releaseBase = "https://github.com/binwiederhier/ntfy/releases/download/v$version"
@@ -62,6 +63,7 @@ foreach ($server in Get-NtfyServers) {
     New-Item -ItemType Directory -Force -Path (Join-Path $AttachRoot $name) | Out-Null
     $serverConfig = @(
         "base-url: `"$scheme`://$baseHost`:$port`"",
+        "upstream-base-url: `"$upstreamBaseUrl`"",
         'listen-http: ""',
         "listen-https: `":$port`"",
         "cert-file: `"$(Convert-ToNtfyPath $certPath)`"",
