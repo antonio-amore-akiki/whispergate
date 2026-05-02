@@ -59,6 +59,7 @@ Get-ChildItem -Path $ConfigRoot -Filter '*.server.yml' -File -ErrorAction Silent
 foreach ($server in Get-NtfyServers) {
     $name = [string]$server.Name
     $port = [int]$server.Port
+    $listenPort = Get-NtfyListenPort
     $externalPortSuffix = if ($port -eq 443) { '' } else { ":$port" }
     New-Item -ItemType Directory -Force -Path (Join-Path $CacheRoot $name) | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $AttachRoot $name) | Out-Null
@@ -66,7 +67,7 @@ foreach ($server in Get-NtfyServers) {
         "base-url: `"$scheme`://$baseHost$externalPortSuffix`"",
         "upstream-base-url: `"$upstreamBaseUrl`"",
         'listen-http: ""',
-        "listen-https: `":$port`"",
+        "listen-https: `":$listenPort`"",
         "cert-file: `"$(Convert-ToNtfyPath $certPath)`"",
         "key-file: `"$(Convert-ToNtfyPath $keyPath)`"",
         "cache-file: `"$(Convert-ToNtfyPath (Join-Path $CacheRoot "$name\cache.db"))`"",

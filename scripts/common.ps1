@@ -109,6 +109,10 @@ function Get-NtfyServers {
     return $servers
 }
 
+function Get-NtfyListenPort {
+    return 8091
+}
+
 function Get-PrimaryServerConfigPath {
     $server = Get-NtfyServers | Select-Object -First 1
     return Get-InstanceConfigPath $server.Name

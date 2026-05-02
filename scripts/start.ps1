@@ -8,7 +8,7 @@ if (-not (Test-Path -LiteralPath $ntfyExe)) {
 
 foreach ($server in Get-NtfyServers) {
     $name = [string]$server.Name
-    $port = [int]$server.Port
+    $port = Get-NtfyListenPort
     $configPath = Get-InstanceConfigPath $name
     if (-not (Test-Path -LiteralPath $configPath)) {
         throw "Missing generated server config: $configPath"
