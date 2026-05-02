@@ -8,7 +8,7 @@ Tailscale-first HTTPS ntfy deployment for three Marmoura notification profiles.
 - Requires Tailscale CLI, healthy Tailscale status, and MagicDNS resolution.
 - Uses `tailscale cert` for the configured Tailscale hostname.
 - Generates auth, cache, logs, and runtime configs under ignored `runtime`.
-- Verifies Tailscale health, allowed publish, unknown-topic denial, and HTTP rejection.
+- Verifies Tailscale health, allowed publish, server receive, unknown-topic denial, and HTTP rejection.
 
 ## Commands
 
@@ -31,6 +31,7 @@ Verify Tailscale production readiness.
 ```powershell
 .\scripts\verify.ps1
 ```
+This proves server receive, not phone notification delivery.
 
 Stop ntfy servers.
 ```powershell
