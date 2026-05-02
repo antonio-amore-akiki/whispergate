@@ -2,6 +2,8 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
 $config = Get-NtfyConfig
+$baseHost = [string]$config.host
+Assert-TailscaleReady -HostName $baseHost
 $rows = @()
 $blockedTopic = 'blocked-topic-proof'
 
@@ -9,19 +11,19 @@ foreach ($instance in $config.instances) {
     $name = [string]$instance.name
     $port = [int]$instance.port
     $topic = [string]$instance.topic
-    $healthUrl = "https://127.0.0.1:$port/v1/health"
-    $publishUrl = "https://127.0.0.1:$port/$topic"
-    $blockedUrl = "https://127.0.0.1:$port/$blockedTopic"
-    $httpUrl = "http://127.0.0.1:$port/v1/health"
-    $localHealthy = $false
+    $healthUrl = "https://$baseHost`:$port/v1/health"
+    $publishUrl = "https://$baseHost`:$port/$topic"
+    $blockedUrl = "https://$baseHost`:$port/$blockedTopic"
+    $httpUrl = "http://$baseHost`:$port/v1/health"
+    $tailscaleHealthy = $false
     $publishHealthy = $false
     $unknownDenied = $false
     $httpRejected = $false
     $errorText = ''
 
     try {
-        $health = Invoke-RestMethod -Uri $healthUrl -SkipCertificateCheck -TimeoutSec $HttpTimeoutSeconds
-        $localHealthy = [bool]$health.healthy
+        $health = Invoke-RestMethod -Uri $healthUrl -TimeoutSec $HttpTimeoutSeconds
+        $tailscaleHealthy = [bool]$health.healthy
     }
     catch {
         $errorText = $_.Exception.Message
@@ -30,7 +32,6 @@ foreach ($instance in $config.instances) {
     try {
         $publish = Invoke-RestMethod -Method Post `
             -Uri $publishUrl `
-            -SkipCertificateCheck `
             -TimeoutSec $HttpTimeoutSeconds `
             -Body "verify $(Get-Date -Format HHmmss)"
         $publishHealthy = [bool]$publish.id
@@ -42,7 +43,6 @@ foreach ($instance in $config.instances) {
     try {
         Invoke-RestMethod -Method Post `
             -Uri $blockedUrl `
-            -SkipCertificateCheck `
             -TimeoutSec $HttpTimeoutSeconds `
             -Body 'blocked proof' | Out-Null
     }
@@ -66,8 +66,9 @@ foreach ($instance in $config.instances) {
 
     $rows += [pscustomobject]@{
         Instance = $name
+        Host = $baseHost
         Port = $port
-        LocalHealthy = $localHealthy
+        TailscaleHealthy = $tailscaleHealthy
         PublishHealthy = $publishHealthy
         UnknownDenied = $unknownDenied
         HttpRejected = $httpRejected
@@ -78,7 +79,7 @@ foreach ($instance in $config.instances) {
 $rows | Format-Table -AutoSize
 
 $failed = $rows | Where-Object {
-    -not $_.LocalHealthy -or
+    -not $_.TailscaleHealthy -or
     -not $_.PublishHealthy -or
     -not $_.UnknownDenied -or
     -not $_.HttpRejected

@@ -3,6 +3,9 @@ $ErrorActionPreference = 'Stop'
 
 $config = Get-NtfyConfig
 $version = [string]$config.ntfyVersion
+$baseHost = [string]$config.host
+$scheme = [string]$config.scheme
+Assert-TailscaleReady -HostName $baseHost
 $zipName = "ntfy_$($version)_windows_amd64.zip"
 $releaseBase = "https://github.com/binwiederhier/ntfy/releases/download/v$version"
 $zipPath = Join-Path $DownloadRoot $zipName
@@ -39,28 +42,17 @@ if (-not (Test-Path -LiteralPath $ntfyExe)) {
     throw "Missing ntfy.exe after extraction: $ntfyExe"
 }
 
-$certPath = Join-Path $CertRoot 'localhost.crt'
-$keyPath = Join-Path $CertRoot 'localhost.key'
+$certPath = Join-Path $CertRoot "$baseHost.crt"
+$keyPath = Join-Path $CertRoot "$baseHost.key"
 if (-not (Test-Path -LiteralPath $certPath) -or -not (Test-Path -LiteralPath $keyPath)) {
-    $rsa = [System.Security.Cryptography.RSA]::Create(2048)
-    $name = [System.Security.Cryptography.X509Certificates.X500DistinguishedName]::new('CN=localhost')
-    $hash = [System.Security.Cryptography.HashAlgorithmName]::SHA256
-    $padding = [System.Security.Cryptography.RSASignaturePadding]::Pkcs1
-    $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new($name, $rsa, $hash, $padding)
-    $san = [System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder]::new()
-    $san.AddDnsName('localhost')
-    $san.AddIpAddress([System.Net.IPAddress]::Parse('127.0.0.1'))
-    $request.CertificateExtensions.Add($san.Build())
-    $notBefore = [System.DateTimeOffset]::Now.AddDays(-1)
-    $notAfter = [System.DateTimeOffset]::Now.AddYears(3)
-    $cert = $request.CreateSelfSigned($notBefore, $notAfter)
-    [System.IO.File]::WriteAllText($certPath, $cert.ExportCertificatePem())
-    [System.IO.File]::WriteAllText($keyPath, $rsa.ExportPkcs8PrivateKeyPem())
+    $tailscaleExe = Get-TailscaleExePath
+    & $tailscaleExe cert "--cert-file=$certPath" "--key-file=$keyPath" $baseHost
+    if ($LASTEXITCODE -ne 0) {
+        throw "tailscale cert failed for $baseHost"
+    }
 }
 
 $authFile = Join-Path $AuthRoot 'auth.db'
-$baseHost = [string]$config.host
-$scheme = [string]$config.scheme
 foreach ($instance in $config.instances) {
     $name = [string]$instance.name
     $port = [int]$instance.port

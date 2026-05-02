@@ -13,20 +13,59 @@ $LogRoot = Join-Path $RuntimeRoot 'logs'
 $StartupDelayMilliseconds = 500
 $ServiceStartupSeconds = 3
 $HttpTimeoutSeconds = 5
+$LocalOnlyHosts = 'localhost', '127.0.0.1', '::1'
 
 function Get-NtfyConfig {
     $localConfig = Join-Path $RepoRoot 'config.json'
-    $exampleConfig = Join-Path $RepoRoot 'config.example.json'
-    $configPath = if (Test-Path -LiteralPath $localConfig) { $localConfig } else { $exampleConfig }
-    if (-not (Test-Path -LiteralPath $configPath)) {
-        throw "Missing config file: $configPath"
+    if (-not (Test-Path -LiteralPath $localConfig)) {
+        throw 'Missing config.json. Copy config.example.json to config.json and set a Tailscale host.'
     }
-    return Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    $config = Get-Content -LiteralPath $localConfig -Raw | ConvertFrom-Json
+    Assert-TailscaleConfig -Config $config
+    return $config
 }
 
 function Convert-ToNtfyPath {
     param([string]$Path)
     return $Path.Replace('\', '/')
+}
+
+function Assert-TailscaleConfig {
+    param([object]$Config)
+    $hostName = [string]$Config.host
+    if (-not $hostName) {
+        throw 'config.json host is required.'
+    }
+    if ($LocalOnlyHosts -contains $hostName.ToLowerInvariant()) {
+        throw 'config.json host must be a Tailscale DNS name, not localhost.'
+    }
+    if ($hostName -notmatch '\.ts\.net$') {
+        throw 'config.json host must end with .ts.net.'
+    }
+    if ([string]$Config.scheme -ne 'https') {
+        throw 'config.json scheme must be https.'
+    }
+}
+
+function Get-TailscaleExePath {
+    $command = Get-Command tailscale.exe -ErrorAction SilentlyContinue
+    if (-not $command) {
+        throw 'tailscale.exe is required on PATH.'
+    }
+    return $command.Source
+}
+
+function Assert-TailscaleReady {
+    param([string]$HostName)
+    $tailscaleExe = Get-TailscaleExePath
+    & $tailscaleExe status | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw 'tailscale status failed.'
+    }
+    $dnsResult = Resolve-DnsName $HostName -ErrorAction SilentlyContinue
+    if (-not $dnsResult) {
+        throw "Tailscale host does not resolve: $HostName"
+    }
 }
 
 function Get-NtfyExePath {

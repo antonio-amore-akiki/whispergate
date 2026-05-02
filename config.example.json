@@ -1,6 +1,6 @@
 {
   "ntfyVersion": "2.22.0",
-  "host": "localhost",
+  "host": "your-device.your-tailnet.ts.net",
   "scheme": "https",
   "defaultUser": "anto",
   "anonymousPermission": "write-only",

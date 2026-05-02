@@ -1,33 +1,38 @@
 # ntfy Marmoura
 
-Reusable local HTTPS ntfy deployment for three Marmoura notification profiles.
+Tailscale-first HTTPS ntfy deployment for three Marmoura notification profiles.
 
 ## Features
 
 - Downloads pinned official `ntfy` for Windows.
-- Generates local HTTPS configs for `main`, `a`, and `b`.
-- Generates local auth, cache, logs, and certificate files under `runtime`.
-- Verifies health, allowed publish, blocked unknown-topic publish, and HTTP rejection.
-- Keeps Tailscale or custom hostnames optional through `config.json`.
+- Requires Tailscale CLI, healthy Tailscale status, and MagicDNS resolution.
+- Uses `tailscale cert` for the configured Tailscale hostname.
+- Generates auth, cache, logs, and runtime configs under ignored `runtime`.
+- Verifies Tailscale health, allowed publish, unknown-topic denial, and HTTP rejection.
 
 ## Commands
 
-Bootstrap a fresh local runtime.
+Create and edit local config.
+```powershell
+Copy-Item .\config.example.json .\config.json
+```
+
+Bootstrap the Tailscale runtime.
 ```powershell
 .\scripts\bootstrap.ps1
 ```
 
-Start local ntfy servers.
+Start ntfy servers.
 ```powershell
 .\scripts\start.ps1
 ```
 
-Verify local health and publish behavior.
+Verify Tailscale production readiness.
 ```powershell
 .\scripts\verify.ps1
 ```
 
-Stop local ntfy servers.
+Stop ntfy servers.
 ```powershell
 .\scripts\stop.ps1
 ```
@@ -44,9 +49,6 @@ Restart optional Windows services from elevated PowerShell.
 
 ## Configuration
 
-Edit a local copy when defaults need changes.
-```powershell
-Copy-Item .\config.example.json .\config.json
-```
+Set `host` in `config.json` to the Tailscale DNS name of this machine.
 
-Set `host` to a Tailscale or custom DNS name only when that name resolves locally.
+Localhost is not a production readiness target.
