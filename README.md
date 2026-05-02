@@ -9,7 +9,7 @@ Tailscale-first HTTPS ntfy deployment for Marmoura notification topics.
 - Uses `tailscale cert` for the configured Tailscale hostname.
 - Uses `ntfy.sh` upstream push wake-up for mobile delivery.
 - Generates auth, cache, logs, and runtime configs under ignored `runtime`.
-- Runs one Tailscale HTTPS server on port `8091`.
+- Uses Tailscale Serve so the phone can use the DNS URL without a port.
 - Verifies Tailscale health, allowed publish, server receive, unknown-topic denial, and HTTP rejection.
 
 ## Commands
@@ -54,6 +54,6 @@ Restart optional Windows services from elevated PowerShell.
 
 Set `host` in `config.json` to the Tailscale DNS name of this machine.
 
-Use port `8091` for all topics.
+Use the Tailscale DNS URL for all topics.
 
 Localhost is not a production readiness target.

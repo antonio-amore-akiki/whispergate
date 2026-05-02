@@ -59,10 +59,11 @@ Get-ChildItem -Path $ConfigRoot -Filter '*.server.yml' -File -ErrorAction Silent
 foreach ($server in Get-NtfyServers) {
     $name = [string]$server.Name
     $port = [int]$server.Port
+    $externalPortSuffix = if ($port -eq 443) { '' } else { ":$port" }
     New-Item -ItemType Directory -Force -Path (Join-Path $CacheRoot $name) | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $AttachRoot $name) | Out-Null
     $serverConfig = @(
-        "base-url: `"$scheme`://$baseHost`:$port`"",
+        "base-url: `"$scheme`://$baseHost$externalPortSuffix`"",
         "upstream-base-url: `"$upstreamBaseUrl`"",
         'listen-http: ""',
         "listen-https: `":$port`"",
