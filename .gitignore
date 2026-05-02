@@ -1,0 +1,31 @@
+# Generated runtime and local overrides
+/runtime/
+/bin/
+/config.json
+*.db
+*.log
+*.key
+*.crt
+*.pfx
+*.zip
+*.tmp
+
+# Legacy machine-local state from pre-repo setup
+/main/
+/a/
+/b/
+/c/
+/d/
+/e/
+/auth.db
+/start-ntfy-marmoura.ps1
+/verify-ntfy-marmoura-services.ps1
+/install-ntfy-marmoura-services.ps1
+/restart-ntfy-https-services.ps1
+/restore-ntfy-marmoura-services.ps1
+/recreate-ntfy-secure-services.ps1
+/prune-ntfy-marmoura-services.ps1
+
+# Planning and editor state
+/.planning/
+.vscode/
