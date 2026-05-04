@@ -26,13 +26,43 @@ function Test-AdminShell {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Get-DetectedTailscaleHost {
+function Install-TailscaleForBeginner {
+    $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Stop-WithNextAction `
+            -Message 'Tailscale is not installed, and Windows Package Manager was not found.' `
+            -NextAction 'Install Tailscale from https://tailscale.com/download/windows, sign in, then run START-HERE-Windows.bat again.'
+    }
+
+    Write-Output 'Tailscale is not installed. Installing Tailscale with Windows Package Manager.'
+    & $winget.Source install --id Tailscale.Tailscale --source winget --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -ne 0) {
+        Stop-WithNextAction `
+            -Message 'Tailscale install failed.' `
+            -NextAction 'Install Tailscale from https://tailscale.com/download/windows, sign in, then run START-HERE-Windows.bat again.'
+    }
+
+    Start-Sleep -Seconds 3
     try {
         $tailscaleExe = Get-TailscaleExePath
     } catch {
         Stop-WithNextAction `
-            -Message 'Tailscale is not installed.' `
-            -NextAction 'Install Tailscale from https://tailscale.com/download/windows, sign in, then run START-HERE-Windows.bat again.'
+            -Message 'Tailscale installed, but tailscale.exe was not found yet.' `
+            -NextAction 'Restart PowerShell or Windows, open Tailscale, sign in, then run START-HERE-Windows.bat again.'
+    }
+
+    $guiPath = Join-Path $env:ProgramFiles 'Tailscale\tailscale-ipn.exe'
+    if (Test-Path -LiteralPath $guiPath) {
+        Start-Process -FilePath $guiPath | Out-Null
+    }
+    return $tailscaleExe
+}
+
+function Get-DetectedTailscaleHost {
+    try {
+        $tailscaleExe = Get-TailscaleExePath
+    } catch {
+        $tailscaleExe = Install-TailscaleForBeginner
     }
 
     $statusRaw = & $tailscaleExe status --self --json 2>&1
@@ -108,6 +138,10 @@ try {
     }
 
     if (-not (Test-AdminShell)) {
+        if ($CheckOnly) {
+            Write-Output 'Check-only mode: Administrator prompt would be requested.'
+            exit 0
+        }
         Write-Output 'Opening Administrator PowerShell. Approve the Windows prompt.'
         Start-Process `
             -FilePath 'powershell.exe' `

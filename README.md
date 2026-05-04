@@ -10,7 +10,7 @@ For non-technical Windows setup, double-click:
 START-HERE-Windows.bat
 ```
 
-Approve the Windows Administrator prompt. The guided setup checks Tailscale, creates `config.json` when it is missing, installs the Automatic Windows service, verifies the Tailnet HTTPS route, and shows the phone URL.
+Approve the Windows Administrator prompt. The guided setup installs Tailscale when Windows Package Manager is available, checks Tailscale sign-in, creates `config.json` when it is missing, installs the Automatic Windows service, verifies the Tailnet HTTPS route, and shows the phone URL.
 
 The phone URL looks like `https://your-device.your-tailnet.ts.net`. Do not add `:8091`.
 
@@ -38,7 +38,7 @@ Check the installation.
 ## Tailscale setup
 
 Whispergate assumes every operator uses their own Tailscale account and devices.
-Install and sign in before running `setup.ps1`.
+The guided Windows setup can install Tailscale, but each operator must still sign in to their own tailnet.
 
 Windows server:
 1. Install Tailscale for Windows: https://tailscale.com/docs/install
