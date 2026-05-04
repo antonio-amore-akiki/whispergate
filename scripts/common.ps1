@@ -173,6 +173,43 @@ function Get-PrimaryServerConfigPath {
     return Get-InstanceConfigPath $server.Name
 }
 
+
+function Get-NtfyCredentialPath {
+    return Join-Path $AuthRoot 'operator-credentials.txt'
+}
+
+function Get-NtfyServeTarget {
+    return "https+insecure://localhost:$(Get-NtfyListenPort)"
+}
+
+function Get-NtfyHealthUrl {
+    $config = Get-NtfyConfig
+    $server = Get-NtfyServers | Select-Object -First 1
+    $baseUrl = Get-NtfyExternalBaseUrl `
+        -Scheme ([string]$config.scheme) `
+        -HostName ([string]$config.host) `
+        -ExternalPort ([int]$server.Port)
+    return "$baseUrl/v1/health"
+}
+
+function Get-NtfyStatePath {
+    return Join-Path $RuntimeRoot 'state.json'
+}
+
+function Get-NtfyConfigHash {
+    $configPath = Join-Path $RepoRoot 'config.json'
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        return ''
+    }
+    return (Get-FileHash -Algorithm SHA256 -LiteralPath $configPath).Hash.ToLowerInvariant()
+}
+
+function Get-TailscaleServeText {
+    $tailscaleExe = Get-TailscaleExePath
+    $output = & $tailscaleExe serve status 2>&1
+    return ($output -join "`n")
+}
+
 function Assert-AdminShell {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)

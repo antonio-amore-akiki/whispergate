@@ -18,6 +18,9 @@ foreach ($path in $tracked) {
         $normalized -like '*.crt' -or
         $normalized -like '*.pfx' -or
         $normalized -like '*.zip' -or
+        $normalized -like '*.tar.gz' -or
+        $normalized -like '*.pem' -or
+        $normalized -like 'artifacts/*' -or
         $normalized -like '*operator-credentials.txt') {
         $blocked += $normalized
     }

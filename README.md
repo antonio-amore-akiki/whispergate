@@ -1,16 +1,7 @@
 # Whispergate
 
-Whispergate is a Windows-first setup for running a private ntfy server behind Tailscale HTTPS.
-It publishes source code only. Cloning this repo never grants access to another operator's server.
-
-## Features
-
-- Downloads a pinned official ntfy release for Windows.
-- Verifies the ntfy release checksum before extraction.
-- Generates local runtime config, certs, auth, cache, logs, and attachments under ignored runtime state.
-- Uses Tailscale MagicDNS and HTTPS so devices use a no-port URL.
-- Installs ntfy as an automatic Windows service named from deploymentName.
-- Verifies health, publish, authenticated receive, WebSocket subscribe, unknown-topic denial, and HTTP rejection.
+Whispergate runs a private ntfy server behind Tailscale HTTPS.
+It publishes source code only; cloning this repo never grants access to another operator's server.
 
 ## Quick start
 
@@ -20,76 +11,114 @@ Copy-Item .\config.example.json .\config.json
 notepad .\config.json
 ```
 
-Set these fields before bootstrapping:
-- deploymentName: lowercase service prefix, for example marmoura.
-- host: this machine's Tailscale DNS name ending in .ts.net.
-- defaultUser: local ntfy operator account to create.
-- instances: topic names to serve.
-
-Bootstrap runtime state.
+Set `deploymentName`, `host`, `defaultUser`, and `instances`, then run the stable Windows setup.
 ```powershell
-.\scripts\bootstrap.ps1
+.\scripts\setup.ps1
 ```
 
-Start ntfy without installing a service.
+Check the installation.
 ```powershell
-.\scripts\start.ps1
-```
-
-Verify readiness.
-```powershell
+.\scripts\doctor.ps1
 .\scripts\verify.ps1
 ```
 
-Install automatic Windows service from elevated PowerShell.
+## Core commands
+
+| Command | Purpose |
+| --- | --- |
+| `scripts\doctor.ps1` | Diagnose config, Tailscale, exposure, service, health, and topics. |
+| `scripts\setup.ps1` | Bootstrap, enable Tailnet-only Serve, install service, and verify. |
+| `scripts\exposure-status.ps1` | Show whether Tailscale is Tailnet-only, Funnel, or missing. |
+| `scripts\disable-funnel.ps1` | Turn off public Funnel and restore Tailnet-only Serve. |
+| `scripts\update.ps1 -DryRun` | Preview update steps without changing local runtime. |
+| `scripts\build-release.ps1` | Build a source zip and SHA256 checksum from tracked files. |
+
+## Doctor
+
+Human output:
 ```powershell
-.\scripts\install-service.ps1
+.\scripts\doctor.ps1
 ```
 
-Restart service from elevated PowerShell.
+Machine output:
 ```powershell
-.\scripts\restart-service.ps1
+.\scripts\doctor.ps1 -Json
 ```
 
-Uninstall service from elevated PowerShell.
+JSON includes `status`, `checks`, `exposure`, `service`, `topics`, and `fixes`.
+
+## Exposure
+
+Default production use is Tailnet-only Tailscale Serve.
+Clients use the Tailscale HTTPS URL without port `8091`.
+
+Enable Tailnet-only Serve.
 ```powershell
+.\scripts\enable-tailnet-only.ps1
+```
+
+Disable public Funnel.
+```powershell
+.\scripts\disable-funnel.ps1
+```
+
+Public Funnel is opt-in only.
+```powershell
+.\scripts\enable-funnel.ps1 -IUnderstandThisPublishesToInternet
+```
+
+## Update
+
+Preview update actions.
+```powershell
+.\scripts\update.ps1 -DryRun
+```
+
+Apply update from the current git remote, restart service, and verify.
+```powershell
+.\scripts\update.ps1
+```
+
+## Reset and uninstall
+
+Setup refuses existing runtime unless reset is explicit.
+```powershell
+.\scripts\reset-runtime.ps1 -ConfirmReset
 .\scripts\uninstall-service.ps1
 ```
 
-Stop local ntfy processes.
-```powershell
-.\scripts\stop.ps1
+## Linux beta
+
+Linux support is beta until verified on a real Tailscale Linux host.
+```bash
+cp config.example.json config.json
+linux/bootstrap.sh
+linux/render-systemd.sh
+linux/install-systemd.sh
+linux/status.sh
+linux/verify.sh
 ```
 
-Run public-source safety checks before publishing.
+## Release package
+
+CI builds a source zip and checksum from tracked files only.
+Tag pushes create release artifacts after safety checks pass.
+No package includes `config.json`, `runtime`, certs, keys, auth DBs, logs, or credentials.
+
+## Troubleshooting
+
+Run doctor first.
 ```powershell
-.\scripts\check-public-safety.ps1
+.\scripts\doctor.ps1
 ```
 
-## Tailscale exposure
-
-Default production use is Tailnet-only Tailscale Serve.
-The phone or client server URL should be the Tailscale HTTPS URL without port 8091.
-
-Example Serve command:
+If health fails, restart service and verify.
 ```powershell
-tailscale serve --bg https+insecure://localhost:8091
+.\scripts\restart-service.ps1
+.\scripts\verify.ps1
 ```
 
-Funnel publishes the same URL to the public internet. Use Funnel only when public access is intended.
-Check exposure before sharing URLs.
+If clients cannot connect, check exposure.
 ```powershell
-tailscale serve status
+.\scripts\exposure-status.ps1
 ```
-
-## Authentication
-
-ntfy authentication is enabled and default access is deny-all.
-The bootstrap command creates runtime/auth/operator-credentials.txt for the configured defaultUser.
-Subscribers need that ntfy username and password to read protected topics.
-Anonymous access is controlled by anonymousPermission in config.json.
-
-## Public repository safety
-
-Do not commit config.json, runtime, certs, keys, auth databases, logs, operator credentials, or local legacy scripts.
-The repository CI runs the public-source safety check on Windows.

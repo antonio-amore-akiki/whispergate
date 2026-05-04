@@ -4,11 +4,64 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
-  public-safety:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run public-source safety checks
+      - name: Public safety
         shell: pwsh
         run: .\scripts\check-public-safety.ps1
+      - name: Doctor JSON contract
+        shell: pwsh
+        run: |
+          Copy-Item .\config.example.json .\config.json
+          $json = .\scripts\doctor.ps1 -Json -NoExitCode
+          $parsed = $json | ConvertFrom-Json
+          if (-not $parsed.status) { throw 'doctor status missing' }
+          if (-not $parsed.checks) { throw 'doctor checks missing' }
+          if (-not $parsed.exposure) { throw 'doctor exposure missing' }
+          if (-not $parsed.service) { throw 'doctor service missing' }
+          if (-not $parsed.topics) { throw 'doctor topics missing' }
+          if ($null -eq $parsed.fixes) { throw 'doctor fixes missing' }
+      - name: Release package dry run
+        shell: pwsh
+        run: .\scripts\build-release.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whispergate-source
+          path: artifacts/release/*
+
+  linux-beta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bash syntax
+        run: bash -n linux/*.sh
+      - name: Render systemd unit
+        run: |
+          cp config.example.json config.json
+          bash linux/render-systemd.sh > whispergate.service
+          grep -q 'ExecStart=' whispergate.service
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux-beta]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release package
+        shell: pwsh
+        run: .\scripts\build-release.ps1
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME artifacts/release/* `
+            --repo $env:GITHUB_REPOSITORY `
+            --title $env:GITHUB_REF_NAME `
+            --notes 'Whispergate source package and SHA256 checksum.'

@@ -10,6 +10,9 @@
 *.pfx
 *.zip
 *.tmp
+*.pem
+*.tar.gz
+/artifacts/
 
 # Legacy machine-local state from pre-repo setup
 /main/
