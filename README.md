@@ -12,6 +12,7 @@ notepad .\config.json
 ```
 
 Set `deploymentName`, `host`, `defaultUser`, and `instances`, then run the stable Windows setup.
+Setup installs an Automatic Windows service so ntfy starts after reboot.
 ```powershell
 .\scripts\setup.ps1
 ```
@@ -59,7 +60,7 @@ Serve requirements:
 | Command | Purpose |
 | --- | --- |
 | `scripts\doctor.ps1` | Diagnose config, Tailscale, exposure, service, health, and topics. |
-| `scripts\setup.ps1` | Bootstrap, enable Tailnet-only Serve, install service, and verify. |
+| `scripts\setup.ps1` | Bootstrap, enable Tailnet-only Serve, install the Automatic Windows service, and verify. |
 | `scripts\exposure-status.ps1` | Show whether Tailscale is Tailnet-only, Funnel, or missing. |
 | `scripts\disable-funnel.ps1` | Turn off public Funnel and restore Tailnet-only Serve. |
 | `scripts\update.ps1 -DryRun` | Preview update steps without changing local runtime. |
@@ -78,6 +79,7 @@ Machine output:
 ```
 
 JSON includes `status`, `checks`, `exposure`, `service`, `topics`, and `fixes`.
+Doctor fails when the Windows service is missing, stopped, or not set to Automatic startup.
 
 ## Exposure
 

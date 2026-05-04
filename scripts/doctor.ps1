@@ -101,8 +101,14 @@ if ($config) {
             } else {
                 Add-Check 'service' 'fail' "$($service.name) is $($serviceRow.Status)." '.\scripts\restart-service.ps1'
             }
+            if ($serviceRow.StartType -eq 'Automatic') {
+                Add-Check 'service-startup' 'pass' "$($service.name) startup is Automatic." ''
+            } else {
+                Add-Check 'service-startup' 'fail' "$($service.name) startup is $($serviceRow.StartType)." '.\scripts\install-service.ps1'
+            }
         } else {
             Add-Check 'service' 'warn' "$($service.name) is not installed." '.\scripts\install-service.ps1'
+            Add-Check 'service-startup' 'fail' "$($service.name) has no durable startup owner." '.\scripts\install-service.ps1'
         }
     } catch {
         Add-Check 'service' 'fail' $_.Exception.Message '.\scripts\install-service.ps1'
