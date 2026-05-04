@@ -22,6 +22,38 @@ Check the installation.
 .\scripts\verify.ps1
 ```
 
+
+## Tailscale setup
+
+Whispergate assumes every operator uses their own Tailscale account and devices.
+Install and sign in before running `setup.ps1`.
+
+Windows server:
+1. Install Tailscale for Windows: https://tailscale.com/docs/install
+2. Sign in from the Tailscale tray app or run `tailscale up`.
+3. Confirm the device is online.
+```powershell
+tailscale status --self
+```
+4. Confirm the machine has a MagicDNS name ending in `.ts.net`.
+```powershell
+tailscale status --self
+```
+5. Put that full MagicDNS name in `config.json` as `host`.
+
+Phone or client:
+1. Install Tailscale on the phone from the official app store.
+2. Sign in to the same tailnet.
+3. Use the server URL from `config.json`, for example `https://your-device.your-tailnet.ts.net`.
+4. Do not add `:8091` on the phone URL.
+
+Serve requirements:
+- Tailscale Serve needs HTTPS enabled in the tailnet.
+- If Serve asks for approval, follow the Tailscale admin link it prints.
+- Whispergate configures Tailnet-only Serve with `scripts\enable-tailnet-only.ps1`.
+- Serve command reference: https://tailscale.com/kb/1242/tailscale-serve
+- Serve overview: https://tailscale.com/docs/features/tailscale-serve
+
 ## Core commands
 
 | Command | Purpose |
