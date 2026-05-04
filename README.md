@@ -10,7 +10,7 @@ Tailscale-first HTTPS ntfy deployment for Marmoura notification topics.
 - Uses `ntfy.sh` upstream push wake-up for mobile delivery.
 - Generates auth, cache, logs, and runtime configs under ignored `runtime`.
 - Uses Tailscale Serve so the phone can use the DNS URL without a port.
-- Verifies Tailscale health, allowed publish, server receive, unknown-topic denial, and HTTP rejection.
+- Verifies no-port Tailscale health, allowed publish, server receive, WebSocket subscribe, unknown-topic denial, and HTTP rejection.
 
 ## Commands
 
@@ -33,7 +33,7 @@ Verify Tailscale production readiness.
 ```powershell
 .\scripts\verify.ps1
 ```
-This proves server receive, not phone notification delivery.
+This proves server receive and WebSocket subscribe, not phone notification delivery.
 
 Stop ntfy servers.
 ```powershell

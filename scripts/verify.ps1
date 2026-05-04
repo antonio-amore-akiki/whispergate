@@ -3,7 +3,10 @@ $ErrorActionPreference = 'Stop'
 
 $config = Get-NtfyConfig
 $baseHost = [string]$config.host
+$scheme = [string]$config.scheme
 Assert-TailscaleReady -HostName $baseHost
+$primaryServer = Get-NtfyServers | Select-Object -First 1
+$primaryConfigPath = Get-InstanceConfigPath ([string]$primaryServer.Name)
 $rows = @()
 $blockedTopic = 'blocked-topic-proof'
 
@@ -54,22 +57,55 @@ function Test-PublishedMessageReceived {
     return $false
 }
 
+function Test-WebSocketConnect {
+    param(
+        [string]$TopicUrl,
+        [hashtable]$Headers
+    )
+    Add-Type -AssemblyName System.Net.WebSockets.Client
+    Add-Type -AssemblyName System.Threading
+    $webSocket = [System.Net.WebSockets.ClientWebSocket]::new()
+    foreach ($entry in $Headers.GetEnumerator()) {
+        $webSocket.Options.SetRequestHeader($entry.Key, [string]$entry.Value)
+    }
+    $socketUrl = $TopicUrl -replace '^https://', 'wss://'
+    $uri = [Uri]("$socketUrl/ws")
+    $cancel = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds($HttpTimeoutSeconds))
+    try {
+        $null = $webSocket.ConnectAsync($uri, $cancel.Token).GetAwaiter().GetResult()
+        return ($webSocket.State -eq [System.Net.WebSockets.WebSocketState]::Open)
+    }
+    finally {
+        $webSocket.Dispose()
+        $cancel.Dispose()
+    }
+}
+
 $operatorHeaders = Get-OperatorAuthHeaders
 
 foreach ($instance in $config.instances) {
     $name = [string]$instance.name
     $port = [int]$instance.port
     $topic = [string]$instance.topic
-    $healthUrl = "https://$baseHost`:$port/v1/health"
-    $publishUrl = "https://$baseHost`:$port/$topic"
-    $receiveUrl = "https://$baseHost`:$port/$topic/json?poll=1&since=all"
-    $blockedUrl = "https://$baseHost`:$port/$blockedTopic"
-    $httpUrl = "http://$baseHost`:$port/v1/health"
+    $baseUrl = Get-NtfyExternalBaseUrl -Scheme $scheme -HostName $baseHost -ExternalPort $port
+    Assert-NoExplicitBackendPort -Url $baseUrl
+    $serverConfig = Get-Content -LiteralPath $primaryConfigPath
+    $baseUrlLine = $serverConfig | Where-Object { $_ -match '^base-url:\s*"(?<url>[^"]+)"\s*$' }
+    $generatedBaseUrl = [regex]::Match($baseUrlLine, '^base-url:\s*"(?<url>[^"]+)"\s*$').Groups['url'].Value
+    if ($generatedBaseUrl -ne $baseUrl) {
+        throw 'Generated ntfy server config must use the no-port Tailscale Funnel URL.'
+    }
+    $healthUrl = "$baseUrl/v1/health"
+    $publishUrl = "$baseUrl/$topic"
+    $receiveUrl = "$baseUrl/$topic/json?poll=1&since=all"
+    $blockedUrl = "$baseUrl/$blockedTopic"
+    $httpUrl = "http://$baseHost/v1/health"
     $tailscaleHealthy = $false
     $publishHealthy = $false
     $receiveHealthy = $false
     $unknownDenied = $false
     $httpRejected = $false
+    $webSocketHealthy = $false
     $errorText = ''
     $publishedId = ''
 
@@ -106,6 +142,13 @@ foreach ($instance in $config.instances) {
     }
 
     try {
+        $webSocketHealthy = Test-WebSocketConnect -TopicUrl $publishUrl -Headers $operatorHeaders
+    }
+    catch {
+        $errorText = "$errorText websocket=$($_.Exception.Message)".Trim()
+    }
+
+    try {
         Invoke-RestMethod -Method Post `
             -Uri $blockedUrl `
             -TimeoutSec $HttpTimeoutSeconds `
@@ -132,10 +175,11 @@ foreach ($instance in $config.instances) {
     $rows += [pscustomobject]@{
         Instance = $name
         Host = $baseHost
-        Port = $port
+        Url = $baseUrl
         TailscaleHealthy = $tailscaleHealthy
         PublishHealthy = $publishHealthy
         ReceiveHealthy = $receiveHealthy
+        WebSocketHealthy = $webSocketHealthy
         UnknownDenied = $unknownDenied
         HttpRejected = $httpRejected
         Error = $errorText
@@ -148,6 +192,7 @@ $failed = $rows | Where-Object {
     -not $_.TailscaleHealthy -or
     -not $_.PublishHealthy -or
     -not $_.ReceiveHealthy -or
+    -not $_.WebSocketHealthy -or
     -not $_.UnknownDenied -or
     -not $_.HttpRejected
 }

@@ -60,11 +60,12 @@ foreach ($server in Get-NtfyServers) {
     $name = [string]$server.Name
     $port = [int]$server.Port
     $listenPort = Get-NtfyListenPort
-    $externalPortSuffix = if ($port -eq 443) { '' } else { ":$port" }
+    $externalBaseUrl = Get-NtfyExternalBaseUrl -Scheme $scheme -HostName $baseHost -ExternalPort $port
+    Assert-NoExplicitBackendPort -Url $externalBaseUrl
     New-Item -ItemType Directory -Force -Path (Join-Path $CacheRoot $name) | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $AttachRoot $name) | Out-Null
     $serverConfig = @(
-        "base-url: `"$scheme`://$baseHost$externalPortSuffix`"",
+        "base-url: `"$externalBaseUrl`"",
         "upstream-base-url: `"$upstreamBaseUrl`"",
         'listen-http: ""',
         "listen-https: `":$listenPort`"",

@@ -13,6 +13,7 @@ $LogRoot = Join-Path $RuntimeRoot 'logs'
 $StartupDelayMilliseconds = 500
 $ServiceStartupSeconds = 3
 $HttpTimeoutSeconds = 5
+$DefaultExternalHttpsPort = 443
 $LocalOnlyHosts = 'localhost', '127.0.0.1', '::1'
 $TailscaleInstallPath = Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'
 
@@ -45,6 +46,37 @@ function Assert-TailscaleConfig {
     }
     if ([string]$Config.scheme -ne 'https') {
         throw 'config.json scheme must be https.'
+    }
+    foreach ($instance in @($Config.instances)) {
+        $externalPort = [int]$instance.port
+        if ($externalPort -ne $DefaultExternalHttpsPort) {
+            throw 'config.json instances must use external HTTPS port 443 so Tailscale clients use the DNS URL without a port.'
+        }
+        if ($externalPort -eq (Get-NtfyListenPort)) {
+            throw 'config.json must not expose the local ntfy listen port as an external URL port.'
+        }
+    }
+}
+
+function Get-NtfyExternalBaseUrl {
+    param(
+        [string]$Scheme,
+        [string]$HostName,
+        [int]$ExternalPort
+    )
+    if ($Scheme -ne 'https') {
+        throw 'External ntfy URL scheme must be https.'
+    }
+    if ($ExternalPort -ne $DefaultExternalHttpsPort) {
+        throw 'External ntfy URL must use default HTTPS port 443.'
+    }
+    return "$Scheme`://$HostName"
+}
+
+function Assert-NoExplicitBackendPort {
+    param([string]$Url)
+    if ($Url -match ':8091(?:/|$)') {
+        throw 'External ntfy URL must not include the local backend port.'
     }
 }
 
@@ -128,7 +160,7 @@ function Assert-AdminShell {
 }
 
 function Stop-NtfyRepoProcesses {
-    $ports = Get-ConfiguredPorts
+    $ports = @((Get-ConfiguredPorts), (Get-NtfyListenPort)) | Sort-Object -Unique
     $pids = @()
     foreach ($port in $ports) {
         $listeners = Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue
