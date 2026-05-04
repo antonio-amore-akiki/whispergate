@@ -8,7 +8,9 @@ if (-not (Test-Path -LiteralPath $ntfyExe)) {
 }
 
 Stop-NtfyRepoProcesses
-$existingServices = Get-Service -Name 'ntfy-marmoura-*' -ErrorAction SilentlyContinue
+$servicePrefix = Get-NtfyServicePrefix
+$deploymentName = Get-NtfyDeploymentName
+$existingServices = Get-Service -Name "$servicePrefix-*" -ErrorAction SilentlyContinue
 foreach ($service in $existingServices) {
     Stop-Service -Name $service.Name -Force -ErrorAction SilentlyContinue
     sc.exe delete $service.Name | Out-Null
@@ -17,14 +19,14 @@ Start-Sleep -Seconds $ServiceStartupSeconds
 
 foreach ($server in Get-NtfyServers) {
     $name = [string]$server.Name
-    $serviceName = "ntfy-marmoura-$name"
+    $serviceName = Get-NtfyServiceName $name
     $configPath = Get-InstanceConfigPath $name
     $binaryPath = '"' + $ntfyExe + '" serve --config "' + $configPath + '"'
     New-Service `
         -Name $serviceName `
         -BinaryPathName $binaryPath `
-        -DisplayName "ntfy Marmoura $name" `
-        -Description "ntfy Marmoura local instance $name" `
+        -DisplayName "Whispergate $deploymentName $name" `
+        -Description "Whispergate local ntfy instance $deploymentName/$name" `
         -StartupType Automatic | Out-Null
     Start-Service -Name $serviceName
 }

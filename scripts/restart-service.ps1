@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 
 Assert-AdminShell
 foreach ($server in Get-NtfyServers) {
-    $serviceName = "ntfy-marmoura-$([string]$server.Name)"
+    $serviceName = Get-NtfyServiceName ([string]$server.Name)
     if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
         throw "Missing service: $serviceName"
     }

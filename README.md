@@ -1,59 +1,95 @@
-# ntfy Marmoura
+# Whispergate
 
-Tailscale-first HTTPS ntfy deployment for Marmoura notification topics.
+Whispergate is a Windows-first setup for running a private ntfy server behind Tailscale HTTPS.
+It publishes source code only. Cloning this repo never grants access to another operator's server.
 
 ## Features
 
-- Downloads pinned official `ntfy` for Windows.
-- Requires Tailscale CLI, healthy Tailscale status, and MagicDNS resolution.
-- Uses `tailscale cert` for the configured Tailscale hostname.
-- Uses `ntfy.sh` upstream push wake-up for mobile delivery.
-- Generates auth, cache, logs, and runtime configs under ignored `runtime`.
-- Uses Tailscale Serve so the phone can use the DNS URL without a port.
-- Verifies no-port Tailscale health, allowed publish, server receive, WebSocket subscribe, unknown-topic denial, and HTTP rejection.
+- Downloads a pinned official ntfy release for Windows.
+- Verifies the ntfy release checksum before extraction.
+- Generates local runtime config, certs, auth, cache, logs, and attachments under ignored runtime state.
+- Uses Tailscale MagicDNS and HTTPS so devices use a no-port URL.
+- Installs ntfy as an automatic Windows service named from deploymentName.
+- Verifies health, publish, authenticated receive, WebSocket subscribe, unknown-topic denial, and HTTP rejection.
 
-## Commands
+## Quick start
 
-Create and edit local config.
+Create local config.
 ```powershell
 Copy-Item .\config.example.json .\config.json
+notepad .\config.json
 ```
 
-Bootstrap the Tailscale runtime.
+Set these fields before bootstrapping:
+- deploymentName: lowercase service prefix, for example marmoura.
+- host: this machine's Tailscale DNS name ending in .ts.net.
+- defaultUser: local ntfy operator account to create.
+- instances: topic names to serve.
+
+Bootstrap runtime state.
 ```powershell
 .\scripts\bootstrap.ps1
 ```
 
-Start ntfy servers.
+Start ntfy without installing a service.
 ```powershell
 .\scripts\start.ps1
 ```
 
-Verify Tailscale production readiness.
+Verify readiness.
 ```powershell
 .\scripts\verify.ps1
 ```
-This proves server receive and WebSocket subscribe, not phone notification delivery.
 
-Stop ntfy servers.
-```powershell
-.\scripts\stop.ps1
-```
-
-Install optional Windows services from elevated PowerShell.
+Install automatic Windows service from elevated PowerShell.
 ```powershell
 .\scripts\install-service.ps1
 ```
 
-Restart optional Windows services from elevated PowerShell.
+Restart service from elevated PowerShell.
 ```powershell
 .\scripts\restart-service.ps1
 ```
 
-## Configuration
+Uninstall service from elevated PowerShell.
+```powershell
+.\scripts\uninstall-service.ps1
+```
 
-Set `host` in `config.json` to the Tailscale DNS name of this machine.
+Stop local ntfy processes.
+```powershell
+.\scripts\stop.ps1
+```
 
-Use the Tailscale DNS URL for all topics.
+Run public-source safety checks before publishing.
+```powershell
+.\scripts\check-public-safety.ps1
+```
 
-Localhost is not a production readiness target.
+## Tailscale exposure
+
+Default production use is Tailnet-only Tailscale Serve.
+The phone or client server URL should be the Tailscale HTTPS URL without port 8091.
+
+Example Serve command:
+```powershell
+tailscale serve --bg https+insecure://localhost:8091
+```
+
+Funnel publishes the same URL to the public internet. Use Funnel only when public access is intended.
+Check exposure before sharing URLs.
+```powershell
+tailscale serve status
+```
+
+## Authentication
+
+ntfy authentication is enabled and default access is deny-all.
+The bootstrap command creates runtime/auth/operator-credentials.txt for the configured defaultUser.
+Subscribers need that ntfy username and password to read protected topics.
+Anonymous access is controlled by anonymousPermission in config.json.
+
+## Public repository safety
+
+Do not commit config.json, runtime, certs, keys, auth databases, logs, operator credentials, or local legacy scripts.
+The repository CI runs the public-source safety check on Windows.

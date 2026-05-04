@@ -93,7 +93,7 @@ foreach ($instance in $config.instances) {
     $baseUrlLine = $serverConfig | Where-Object { $_ -match '^base-url:\s*"(?<url>[^"]+)"\s*$' }
     $generatedBaseUrl = [regex]::Match($baseUrlLine, '^base-url:\s*"(?<url>[^"]+)"\s*$').Groups['url'].Value
     if ($generatedBaseUrl -ne $baseUrl) {
-        throw 'Generated ntfy server config must use the no-port Tailscale Funnel URL.'
+        throw 'Generated ntfy server config must use the no-port Tailscale HTTPS URL.'
     }
     $healthUrl = "$baseUrl/v1/health"
     $publishUrl = "$baseUrl/$topic"

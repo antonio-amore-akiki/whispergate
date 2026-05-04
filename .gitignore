@@ -2,6 +2,7 @@
 /runtime/
 /bin/
 /config.json
+/operator-credentials.txt
 *.db
 *.log
 *.key

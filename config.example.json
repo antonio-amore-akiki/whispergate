@@ -1,9 +1,10 @@
 {
   "ntfyVersion": "2.22.0",
+  "deploymentName": "marmoura",
   "host": "your-device.your-tailnet.ts.net",
   "scheme": "https",
   "upstreamBaseUrl": "https://ntfy.sh",
-  "defaultUser": "anto",
+  "defaultUser": "operator",
   "anonymousPermission": "write-only",
   "instances": [
     {

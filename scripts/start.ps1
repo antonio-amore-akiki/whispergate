@@ -35,4 +35,4 @@ foreach ($server in Get-NtfyServers) {
     Start-Sleep -Milliseconds $StartupDelayMilliseconds
 }
 
-Write-Output 'Started ntfy Marmoura servers.'
+Write-Output 'Started Whispergate ntfy servers.'
