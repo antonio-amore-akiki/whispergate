@@ -147,8 +147,11 @@ linux/verify.sh
 
 ## Release package
 
+Non-technical Windows users should download the release zip, unzip it, and double-click `START-HERE-Windows.bat`.
+No git command is required for release users.
+
 CI builds a source zip and checksum from tracked files only.
-Tag pushes create release artifacts after safety checks pass.
+Tag pushes create GitHub release artifacts after safety checks pass.
 No package includes `config.json`, `runtime`, certs, keys, auth DBs, logs, or credentials.
 
 ## Troubleshooting
