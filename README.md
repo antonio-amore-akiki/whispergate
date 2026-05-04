@@ -5,6 +5,17 @@ It publishes source code only; cloning this repo never grants access to another 
 
 ## Quick start
 
+For non-technical Windows setup, double-click:
+```text
+START-HERE-Windows.bat
+```
+
+Approve the Windows Administrator prompt. The guided setup checks Tailscale, creates `config.json` when it is missing, installs the Automatic Windows service, verifies the Tailnet HTTPS route, and shows the phone URL.
+
+The phone URL looks like `https://your-device.your-tailnet.ts.net`. Do not add `:8091`.
+
+## Manual Windows setup
+
 Create local config.
 ```powershell
 Copy-Item .\config.example.json .\config.json
@@ -59,6 +70,7 @@ Serve requirements:
 
 | Command | Purpose |
 | --- | --- |
+| `START-HERE-Windows.bat` | Guided Windows setup for non-technical operators. |
 | `scripts\doctor.ps1` | Diagnose config, Tailscale, exposure, service, health, and topics. |
 | `scripts\setup.ps1` | Bootstrap, enable Tailnet-only Serve, install the Automatic Windows service, and verify. |
 | `scripts\exposure-status.ps1` | Show whether Tailscale is Tailnet-only, Funnel, or missing. |

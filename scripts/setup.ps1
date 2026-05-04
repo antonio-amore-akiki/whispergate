@@ -3,7 +3,9 @@ param([switch]$ResetRuntime)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
-Get-NtfyConfig | Out-Null
+$config = Get-NtfyConfig
+Assert-AdminShell
+Assert-TailscaleReady -HostName ([string]$config.host)
 if (Test-Path -LiteralPath $RuntimeRoot) {
     if (-not $ResetRuntime) {
         throw 'Runtime exists. Run update/restart, or pass -ResetRuntime to recreate local state.'
