@@ -1,141 +1,150 @@
 # Whispergate
 
-Whispergate runs a private ntfy server behind Tailscale HTTPS.
-It publishes source code only; cloning this repo never grants access to another operator's server.
+Private ntfy notifications for phones, laptops, and agent workflows, served through Tailscale instead of the public internet.
 
-## Quick start
+**Story:** your automation can send the message, ntfy can deliver it, and Tailscale can keep it private. The hard part is making the whole path survive reboot, hide the local port, and give a non-technical operator one obvious button.
 
-For non-technical Windows setup, double-click:
+Whispergate packages that path.
+
+- **1 double-click Windows setup**: `START-HERE-Windows.bat`
+- **1 durable process owner**: an Automatic Windows service
+- **1 private phone URL**: `https://your-device.your-tailnet.ts.net`
+- **0 public exposure by default**: Tailnet-only Tailscale Serve
+- **0 phone-side port typing**: do not add `:8091`
+- **2 release artifacts**: source ZIP plus SHA256 checksum
+
+Source only: https://github.com/antonio-amore-akiki/whispergate
+
+## The problem
+
+Self-hosted ntfy is easy to start and easy to break.
+
+A laptop restarts. A terminal closes. The phone app points at the wrong port. Tailscale Serve is not active. Funnel accidentally publishes a private server. Nobody knows whether the problem is ntfy, DNS, Tailscale, the Windows service, or the topic itself.
+
+That is not a production setup. That is a weekend command still running in a window.
+
+## The Whispergate fix
+
+Whispergate turns a local ntfy server into an operator-owned notification gateway:
+
+```text
+phone or agent -> Tailscale HTTPS -> local ntfy on 127.0.0.1:8091
+```
+
+The local port stays local. The phone uses the Tailscale HTTPS name. Windows owns startup. Doctor checks the full path before you call it ready.
+
+## What you get
+
+- Private push notifications for Codex, agent loops, scripts, and home automation.
+- Tailnet-only access by default, with public Funnel blocked unless explicitly enabled.
+- Automatic startup after login or reboot through a Windows service.
+- A doctor command that checks config, Tailscale, Serve/Funnel exposure, port `8091`, service state, health, and topics.
+- A release ZIP for operators who should not touch git.
+- Linux systemd commands in a separate beta lane.
+
+## Quick start for Windows
+
+Download the latest release ZIP, unzip it, then double-click:
+
 ```text
 START-HERE-Windows.bat
 ```
 
-Approve the Windows Administrator prompt. The guided setup installs Tailscale when Windows Package Manager is available, checks Tailscale sign-in, creates `config.json` when it is missing, installs the Automatic Windows service, verifies the Tailnet HTTPS route, and shows the phone URL.
+Approve the Windows Administrator prompt.
 
-The phone URL looks like `https://your-device.your-tailnet.ts.net`. Do not add `:8091`.
+The guided setup can install Tailscale through Windows Package Manager, opens the Tailscale sign-in path when needed, creates `config.json` when missing, installs ntfy as an Automatic Windows service, enables Tailnet-only Serve, verifies the route, and prints the phone URL.
 
-## Manual Windows setup
+Use the printed URL in the ntfy phone app.
 
-Create local config.
+```text
+https://your-device.your-tailnet.ts.net
+```
+
+Do not add `:8091` on the phone.
+
+## Manual setup
+
 ```powershell
 Copy-Item .\config.example.json .\config.json
 notepad .\config.json
-```
-
-Set `deploymentName`, `host`, `defaultUser`, and `instances`, then run the stable Windows setup.
-Setup installs an Automatic Windows service so ntfy starts after reboot.
-```powershell
 .\scripts\setup.ps1
-```
-
-Check the installation.
-```powershell
 .\scripts\doctor.ps1
 .\scripts\verify.ps1
 ```
 
+Set `deploymentName`, `host`, `defaultUser`, and `instances` in `config.json` before setup.
 
 ## Tailscale setup
 
-Whispergate assumes every operator uses their own Tailscale account and devices.
-The guided Windows setup can install Tailscale, but each operator must still sign in to their own tailnet.
+Whispergate uses your own Tailscale account and your own tailnet.
 
-Windows server:
+Server laptop:
 1. Install Tailscale for Windows: https://tailscale.com/docs/install
-2. Sign in from the Tailscale tray app or run `tailscale up`.
+2. Sign in from the tray app or run `tailscale up`.
 3. Confirm the device is online.
-```powershell
-tailscale status --self
-```
-4. Confirm the machine has a MagicDNS name ending in `.ts.net`.
-```powershell
-tailscale status --self
-```
-5. Put that full MagicDNS name in `config.json` as `host`.
 
-Phone or client:
-1. Install Tailscale on the phone from the official app store.
+```powershell
+tailscale status --self
+```
+
+4. Copy the MagicDNS name ending in `.ts.net` into `config.json` as `host`.
+
+Phone:
+1. Install Tailscale from the official app store.
 2. Sign in to the same tailnet.
-3. Use the server URL from `config.json`, for example `https://your-device.your-tailnet.ts.net`.
-4. Do not add `:8091` on the phone URL.
+3. Add the server URL printed by setup.
+4. Leave port `8091` off the phone URL.
 
 Serve requirements:
 - Tailscale Serve needs HTTPS enabled in the tailnet.
-- If Serve asks for approval, follow the Tailscale admin link it prints.
-- Whispergate configures Tailnet-only Serve with `scripts\enable-tailnet-only.ps1`.
-- Serve command reference: https://tailscale.com/kb/1242/tailscale-serve
-- Serve overview: https://tailscale.com/docs/features/tailscale-serve
+- If Tailscale asks for approval, follow the admin link it prints.
+- Tailnet-only Serve is enabled by `scripts\enable-tailnet-only.ps1`.
+- Tailscale Serve docs: https://tailscale.com/kb/1242/tailscale-serve
 
-## Core commands
+## Operator commands
 
-| Command | Purpose |
+| Command | Result |
 | --- | --- |
-| `START-HERE-Windows.bat` | Guided Windows setup for non-technical operators. |
-| `scripts\doctor.ps1` | Diagnose config, Tailscale, exposure, service, health, and topics. |
-| `scripts\setup.ps1` | Bootstrap, enable Tailnet-only Serve, install the Automatic Windows service, and verify. |
-| `scripts\exposure-status.ps1` | Show whether Tailscale is Tailnet-only, Funnel, or missing. |
-| `scripts\disable-funnel.ps1` | Turn off public Funnel and restore Tailnet-only Serve. |
-| `scripts\update.ps1 -DryRun` | Preview update steps without changing local runtime. |
-| `scripts\build-release.ps1` | Build a source zip and SHA256 checksum from tracked files. |
+| `START-HERE-Windows.bat` | Guided setup for non-technical Windows operators. |
+| `scripts\doctor.ps1` | Full diagnostic report with fix hints. |
+| `scripts\doctor.ps1 -Json` | Machine-readable diagnostics. |
+| `scripts\verify.ps1` | Health, publish, receive, and websocket checks. |
+| `scripts\exposure-status.ps1` | Show Tailnet-only, Funnel, or missing exposure. |
+| `scripts\disable-funnel.ps1` | Turn public Funnel off. |
+| `scripts\update.ps1 -DryRun` | Preview update steps. |
+| `scripts\build-release.ps1` | Build source ZIP and SHA256 checksum. |
 
-## Doctor
+## Exposure model
 
-Human output:
-```powershell
-.\scripts\doctor.ps1
-```
+Default: Tailnet-only.
 
-Machine output:
-```powershell
-.\scripts\doctor.ps1 -Json
-```
+Public Funnel is not enabled by setup or update. Turning it on requires the explicit confirmation flag:
 
-JSON includes `status`, `checks`, `exposure`, `service`, `topics`, and `fixes`.
-Doctor fails when the Windows service is missing, stopped, or not set to Automatic startup.
-
-## Exposure
-
-Default production use is Tailnet-only Tailscale Serve.
-Clients use the Tailscale HTTPS URL without port `8091`.
-
-Enable Tailnet-only Serve.
-```powershell
-.\scripts\enable-tailnet-only.ps1
-```
-
-Disable public Funnel.
-```powershell
-.\scripts\disable-funnel.ps1
-```
-
-Public Funnel is opt-in only.
 ```powershell
 .\scripts\enable-funnel.ps1 -IUnderstandThisPublishesToInternet
 ```
 
-## Update
+Turn Funnel off and restore private Serve:
 
-Preview update actions.
+```powershell
+.\scripts\disable-funnel.ps1
+```
+
+## Update, reset, uninstall
+
 ```powershell
 .\scripts\update.ps1 -DryRun
-```
-
-Apply update from the current git remote, restart service, and verify.
-```powershell
 .\scripts\update.ps1
-```
-
-## Reset and uninstall
-
-Setup refuses existing runtime unless reset is explicit.
-```powershell
 .\scripts\reset-runtime.ps1 -ConfirmReset
 .\scripts\uninstall-service.ps1
 ```
 
+Setup refuses to overwrite existing runtime config, auth DBs, certs, or keys unless reset is explicit.
+
 ## Linux beta
 
 Linux support is beta until verified on a real Tailscale Linux host.
+
 ```bash
 cp config.example.json config.json
 linux/bootstrap.sh
@@ -145,29 +154,16 @@ linux/status.sh
 linux/verify.sh
 ```
 
-## Release package
+## Release safety
 
-Non-technical Windows users should download the release zip, unzip it, and double-click `START-HERE-Windows.bat`.
-No git command is required for release users.
+GitHub releases are source distribution only. They do not grant access to the maintainer's server.
 
-CI builds a source zip and checksum from tracked files only.
-Tag pushes create GitHub release artifacts after safety checks pass.
-No package includes `config.json`, `runtime`, certs, keys, auth DBs, logs, or credentials.
+Release packages are built from tracked files and exclude `config.json`, `runtime`, certs, keys, auth DBs, logs, and local operator files.
 
-## Troubleshooting
+## Search map
 
-Run doctor first.
-```powershell
-.\scripts\doctor.ps1
-```
+ntfy, self-hosted ntfy, private notifications, push notifications, Tailscale, Tailscale Serve, Tailscale Funnel, MagicDNS, Tailnet, Windows service, local notification server, Codex notifications, agent notifications, home automation notifications.
 
-If health fails, restart service and verify.
-```powershell
-.\scripts\restart-service.ps1
-.\scripts\verify.ps1
-```
+## License
 
-If clients cannot connect, check exposure.
-```powershell
-.\scripts\exposure-status.ps1
-```
+MIT. See `LICENSE`.
