@@ -184,7 +184,7 @@ try {
     Write-Step 'Finished'
     Write-Output "Phone URL: https://$detectedHost"
     Write-Output 'Do not add :8091 on the phone.'
-    Write-Output 'Operator credentials are saved under runtime\auth\operator-credentials.txt.'
+    Write-Output 'Operator password is saved in Windows Credential Manager.'
     exit 0
 } catch {
     Stop-WithNextAction `

@@ -38,9 +38,12 @@ The local port stays local. The phone uses the Tailscale HTTPS name. Windows own
 - Private push notifications for Codex, agent loops, scripts, and home automation.
 - Tailnet-only access by default, with public Funnel blocked unless explicitly enabled.
 - Automatic startup after login or reboot through a Windows service.
+- Restart-on-failure recovery for the ntfy backend service.
 - A doctor command that checks config, Tailscale, Serve/Funnel exposure, port `8091`, service state, health, and topics.
 - A release ZIP for operators who should not touch git.
 - Linux systemd commands in a separate beta lane.
+
+Codex notify has two autonomy owners: Whispergate owns the ntfy backend through the Windows service, and Codex owns its hidden supervisor plus daemon through the login startup entry. Forced sends prove routing; a real Codex completion remains the final live-run gate.
 
 ## Quick start for Windows
 
@@ -139,7 +142,7 @@ Turn Funnel off and restore private Serve:
 .\scripts\uninstall-service.ps1
 ```
 
-Setup refuses to overwrite existing runtime config, auth DBs, certs, or keys unless reset is explicit.
+Setup refuses to overwrite existing runtime config, auth DBs, certs, or keys unless reset is explicit. Operator auth is owned by Windows Credential Manager. Rotate it with `scripts\rotate-operator-credential.ps1`.
 
 ## Linux beta
 
@@ -158,7 +161,7 @@ linux/verify.sh
 
 GitHub releases are source distribution only. They do not grant access to the maintainer's server.
 
-Release packages are built from tracked files and exclude `config.json`, `runtime`, certs, keys, auth DBs, logs, and local operator files.
+Release packages are built from tracked files and exclude `config.json`, `runtime`, certs, keys, auth DBs, logs, and local operator files. The operator password is stored in Windows Credential Manager at setup time, not in a tracked or runtime text file.
 
 ## Search map
 

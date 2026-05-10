@@ -28,6 +28,8 @@ foreach ($server in Get-NtfyServers) {
         -DisplayName "Whispergate $deploymentName $name" `
         -Description "Whispergate local ntfy instance $deploymentName/$name" `
         -StartupType Automatic | Out-Null
+    sc.exe failure $serviceName reset= 86400 actions= restart/60000/restart/60000/restart/60000 | Out-Null
+    sc.exe failureflag $serviceName 1 | Out-Null
     Start-Service -Name $serviceName
 }
 
