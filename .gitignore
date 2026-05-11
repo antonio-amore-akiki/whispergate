@@ -1,6 +1,8 @@
 # Generated runtime and local overrides
 /runtime/
 /bin/
+**/bin/
+**/obj/
 /config.json
 /operator-credentials.txt
 *.db

@@ -1,69 +1,62 @@
 # Whispergate
 
-Private ntfy notifications for phones, laptops, and agent workflows, served through Tailscale instead of the public internet.
+Private ntfy notifications for phones, laptops, and agent workflows.
 
-**Story:** your automation can send the message, ntfy can deliver it, and Tailscale can keep it private. The hard part is making the whole path survive reboot, hide the local port, and give a non-technical operator one obvious button.
-
-Whispergate packages that path.
-
-- **1 double-click Windows setup**: `START-HERE-Windows.bat`
-- **1 durable process owner**: an Automatic Windows service
-- **1 private phone URL**: `https://your-device.your-tailnet.ts.net`
-- **0 public exposure by default**: Tailnet-only Tailscale Serve
-- **0 phone-side port typing**: do not add `:8091`
-- **2 release artifacts**: source ZIP plus SHA256 checksum
-
-Source only: https://github.com/antonio-amore-akiki/whispergate
-
-## The problem
-
-Self-hosted ntfy is easy to start and easy to break.
-
-A laptop restarts. A terminal closes. The phone app points at the wrong port. Tailscale Serve is not active. Funnel accidentally publishes a private server. Nobody knows whether the problem is ntfy, DNS, Tailscale, the Windows service, or the topic itself.
-
-That is not a production setup. That is a weekend command still running in a window.
-
-## The Whispergate fix
-
-Whispergate turns a local ntfy server into an operator-owned notification gateway:
+Whispergate turns local ntfy into an operator-owned notification gateway:
 
 ```text
 phone or agent -> Tailscale HTTPS -> local ntfy on 127.0.0.1:8091
 ```
 
-The local port stays local. The phone uses the Tailscale HTTPS name. Windows owns startup. Doctor checks the full path before you call it ready.
+The local port stays local. The phone uses the Tailscale HTTPS name.
+Windows owns startup, restart recovery, and health checks.
 
 ## What you get
 
-- Private push notifications for Codex, agent loops, scripts, and home automation.
-- Tailnet-only access by default, with public Funnel blocked unless explicitly enabled.
-- Automatic startup after login or reboot through a Windows service.
-- Restart-on-failure recovery for the ntfy backend service.
-- A doctor command that checks config, Tailscale, Serve/Funnel exposure, port `8091`, service state, health, and topics.
-- A release ZIP for operators who should not touch git.
-- Linux systemd commands in a separate beta lane.
+- A one-shot Windows setup EXE for guided install or repair.
+- An Automatic Windows service for the ntfy backend.
+- Tailnet-only Tailscale Serve by default; Funnel is opt-in only.
+- No phone-side port typing; do not add `:8091`.
+- Operator password storage in Windows Credential Manager.
+- Doctor and verify scripts for health, publish, receive, websocket, service, and exposure checks.
+- Linux systemd scripts in a beta lane.
 
-Codex notify has two autonomy owners: Whispergate owns the ntfy backend through the Windows service, and Codex owns its hidden supervisor plus daemon through the login startup entry. Forced sends prove routing; a real Codex completion remains the final live-run gate.
+Codex notify has two autonomy owners.
+Whispergate owns ntfy through the Windows service.
+Codex owns its hidden supervisor plus daemon through login startup.
+Forced sends prove routing; a real Codex completion remains the final live-run gate.
 
 ## Quick start for Windows
 
-Download the latest release ZIP, unzip it, then double-click:
+Download the latest release and run:
 
 ```text
-START-HERE-Windows.bat
+WhispergateSetup.exe
 ```
 
-Approve the Windows Administrator prompt.
+v1 is unsigned. Windows SmartScreen may warn before the wizard opens.
 
-The guided setup can install Tailscale through Windows Package Manager, opens the Tailscale sign-in path when needed, creates `config.json` when missing, installs ntfy as an Automatic Windows service, enables Tailnet-only Serve, verifies the route, and prints the phone URL.
+The wizard checks Windows, Tailscale, MagicDNS, admin status, config, setup, doctor, and verify.
+It asks for UAC only when service or Tailscale setup needs elevation.
+It shows the server URL, username, topics, and Credential Manager target for the phone password.
 
-Use the printed URL in the ntfy phone app.
+Use this URL shape in the ntfy phone app:
 
 ```text
 https://your-device.your-tailnet.ts.net
 ```
 
 Do not add `:8091` on the phone.
+
+## Source ZIP fallback
+
+If you downloaded the source ZIP instead of the EXE, unzip it and double-click:
+
+```text
+START-HERE-Windows.bat
+```
+
+Approve the Windows Administrator prompt. The script path uses the same setup authority as the EXE.
 
 ## Manual setup
 
@@ -108,14 +101,25 @@ Serve requirements:
 
 | Command | Result |
 | --- | --- |
-| `START-HERE-Windows.bat` | Guided setup for non-technical Windows operators. |
+| `WhispergateSetup.exe` | Guided Windows setup, repair, check, and phone instructions. |
+| `START-HERE-Windows.bat` | Source ZIP guided setup fallback. |
 | `scripts\doctor.ps1` | Full diagnostic report with fix hints. |
 | `scripts\doctor.ps1 -Json` | Machine-readable diagnostics. |
 | `scripts\verify.ps1` | Health, publish, receive, and websocket checks. |
 | `scripts\exposure-status.ps1` | Show Tailnet-only, Funnel, or missing exposure. |
 | `scripts\disable-funnel.ps1` | Turn public Funnel off. |
-| `scripts\update.ps1 -DryRun` | Preview update steps. |
-| `scripts\build-release.ps1` | Build source ZIP and SHA256 checksum. |
+| `scripts\rotate-operator-credential.ps1` | Rotate the Credential Manager password. |
+| `scripts\build-release.ps1` | Build EXE, source ZIP, and SHA256 checksums. |
+
+## Setup EXE flags
+
+```powershell
+.\WhispergateSetup.exe --check-only
+.\WhispergateSetup.exe --log-path C:\Temp\whispergate-setup.log
+.\WhispergateSetup.exe --payload-dir C:\Path\To\whispergate
+```
+
+`--check-only` reports preflight status without changing the machine. `--payload-dir` is for developer debugging.
 
 ## Exposure model
 
@@ -142,7 +146,9 @@ Turn Funnel off and restore private Serve:
 .\scripts\uninstall-service.ps1
 ```
 
-Setup refuses to overwrite existing runtime config, auth DBs, certs, or keys unless reset is explicit. Operator auth is owned by Windows Credential Manager. Rotate it with `scripts\rotate-operator-credential.ps1`.
+Setup refuses to overwrite existing runtime config, auth DBs, certs, or keys unless reset is explicit.
+Operator auth is owned by Windows Credential Manager.
+Rotate it with `scripts\rotate-operator-credential.ps1`.
 
 ## Linux beta
 
@@ -159,14 +165,16 @@ linux/verify.sh
 
 ## Release safety
 
-GitHub releases are source distribution only. They do not grant access to the maintainer's server.
+GitHub releases distribute `WhispergateSetup.exe`, the source ZIP, and SHA256 checksums.
+They do not grant access to the maintainer's server.
 
-Release packages are built from tracked files and exclude `config.json`, `runtime`, certs, keys, auth DBs, logs, and local operator files. The operator password is stored in Windows Credential Manager at setup time, not in a tracked or runtime text file.
+Release packages are built from tracked files and exclude runtime state.
+They exclude `config.json`, `runtime`, certs, keys, auth DBs, logs, and local operator files.
+The EXE embeds that same tracked source payload and never embeds Credential Manager values.
 
-## Search map
-
-ntfy, self-hosted ntfy, private notifications, push notifications, Tailscale, Tailscale Serve, Tailscale Funnel, MagicDNS, Tailnet, Windows service, local notification server, Codex notifications, agent notifications, home automation notifications.
+Security status today is `approved-internal` for private tailnet use only.
+Public internet and enterprise production remain unapproved.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT.

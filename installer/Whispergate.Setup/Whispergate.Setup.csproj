@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>WhispergateSetup</AssemblyName>
+    <RootNamespace>Whispergate.Setup</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <Target Name="BuildWhispergatePayload" BeforeTargets="PrepareResources">
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <PropertyGroup>
+      <RepoRoot>$(MSBuildProjectDirectory)\..\..</RepoRoot>
+      <PayloadPath>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)payload.zip</PayloadPath>
+    </PropertyGroup>
+    <Exec Command="git -C &quot;$(RepoRoot)&quot; archive --format=zip --output &quot;$(PayloadPath)&quot; HEAD" />
+  </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)payload.zip"
+                      LogicalName="Whispergate.Setup.Payload.payload.zip" />
+  </ItemGroup>
+</Project>

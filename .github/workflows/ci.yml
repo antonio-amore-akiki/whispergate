@@ -12,6 +12,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
       - name: Public safety
         shell: pwsh
         run: .\scripts\check-public-safety.ps1
@@ -32,7 +35,7 @@ jobs:
         run: .\scripts\build-release.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: whispergate-source
+          name: whispergate-release
           path: artifacts/release/*
 
   linux-beta:
@@ -53,6 +56,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
       - name: Build release package
         shell: pwsh
         run: .\scripts\build-release.ps1
@@ -64,4 +70,4 @@ jobs:
           gh release create $env:GITHUB_REF_NAME artifacts/release/* `
             --repo $env:GITHUB_REPOSITORY `
             --title $env:GITHUB_REF_NAME `
-            --notes 'Whispergate source package and SHA256 checksum.'
+            --notes 'Whispergate setup EXE, source ZIP, and SHA256 checksums.'

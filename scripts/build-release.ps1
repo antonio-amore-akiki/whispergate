@@ -1,4 +1,7 @@
-param([string]$OutputRoot = '')
+param(
+    [string]$OutputRoot = '',
+    [switch]$SkipSetupExe
+)
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -18,3 +21,7 @@ $checksumPath = "$zipPath.sha256"
 Set-Content -LiteralPath $checksumPath -Encoding ascii -Value "$hash  $(Split-Path -Leaf $zipPath)"
 Write-Output "Release package: $zipPath"
 Write-Output "Checksum: $checksumPath"
+
+if (-not $SkipSetupExe) {
+    & (Join-Path $PSScriptRoot 'build-setup-exe.ps1') -OutputRoot $OutputRoot
+}
