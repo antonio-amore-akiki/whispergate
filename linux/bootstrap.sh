@@ -34,12 +34,15 @@ enable-login: true
 behind-proxy: false
 YAML
 if [ ! -f "$AUTH_ROOT/auth.db" ]; then
-  password="$(python3 - <<'PY'
+  operator_value="$(python3 - <<'PY'
 import base64, os
 print(base64.b64encode(os.urandom(24)).decode())
 PY
 )"
-  printf 'user=%s\npassword=%s\n' "$(default_operator)" "$password" > "$(credential_file)"
-  NTFY_PASSWORD="$password" "$(ntfy_exe)" user --config "$(server_config)" add "$(default_operator)"
+  credential_path="$(credential_file)"
+  umask 077
+  printf 'user=%s\npassword=%s\n' "$(default_operator)" "$operator_value" > "$credential_path"
+  chmod 600 "$credential_path"
+  NTFY_PASSWORD=$operator_value "$(ntfy_exe)" user --config "$(server_config)" add "$(default_operator)"
 fi
 echo 'Bootstrapped Whispergate Linux beta runtime.'

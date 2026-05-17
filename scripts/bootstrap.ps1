@@ -29,7 +29,7 @@ $expected = Get-Content -LiteralPath $checksumsPath |
 if (-not $expected) {
     throw "Checksum entry missing for $zipName"
 }
-$actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
+$actual = Get-NtfyFileSha256 -Path $zipPath
 if ($actual -ne $expected) {
     throw "Checksum mismatch for $zipName"
 }
@@ -84,16 +84,15 @@ foreach ($server in Get-NtfyServers) {
 $primaryConfigPath = Get-PrimaryServerConfigPath
 if (-not (Test-Path -LiteralPath $authFile)) {
     New-Item -ItemType File -Force -Path $authFile | Out-Null
-    $password = [Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
-    $credentialPath = Join-Path $AuthRoot 'operator-credentials.txt'
-    Set-Content -Path $credentialPath -Encoding ascii -Value @(
-        "user=$($config.defaultUser)",
-        "password=$password"
-    )
-    $env:NTFY_PASSWORD = $password
-    & $ntfyExe user --config $primaryConfigPath add ([string]$config.defaultUser) | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Failed to create ntfy user' }
-    Remove-Item Env:\NTFY_PASSWORD -ErrorAction SilentlyContinue
+    $password = New-NtfyRandomPassword
+    Set-NtfyOperatorCredential -UserName ([string]$config.defaultUser) -Password $password
+    try {
+        $env:NTFY_PASSWORD = $password
+        & $ntfyExe user --config $primaryConfigPath add ([string]$config.defaultUser) | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to create ntfy user' }
+    } finally {
+        Remove-Item Env:\NTFY_PASSWORD -ErrorAction SilentlyContinue
+    }
 }
 
 foreach ($instance in $config.instances) {

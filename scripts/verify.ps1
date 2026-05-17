@@ -10,21 +10,6 @@ $primaryConfigPath = Get-InstanceConfigPath ([string]$primaryServer.Name)
 $rows = @()
 $blockedTopic = 'blocked-topic-proof'
 
-function Get-OperatorAuthHeaders {
-    $credentialPath = Join-Path $AuthRoot 'operator-credentials.txt'
-    if (-not (Test-Path -LiteralPath $credentialPath)) {
-        throw 'Missing operator credentials. Run .\scripts\bootstrap.ps1 first.'
-    }
-    $credentialPairs = @{}
-    Get-Content -LiteralPath $credentialPath | ForEach-Object {
-        $key, $value = $_.Split('=', 2)
-        $credentialPairs[$key] = $value
-    }
-    $rawCredential = "$($credentialPairs.user):$($credentialPairs.password)"
-    $encodedCredential = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($rawCredential))
-    return @{ Authorization = "Basic $encodedCredential" }
-}
-
 function Convert-ResponseContentToText {
     param([object]$Content)
     if ($Content -is [byte[]]) {
@@ -81,7 +66,7 @@ function Test-WebSocketConnect {
     }
 }
 
-$operatorHeaders = Get-OperatorAuthHeaders
+$operatorHeaders = Get-NtfyOperatorAuthHeaders
 
 foreach ($instance in $config.instances) {
     $name = [string]$instance.name

@@ -1,7 +1,8 @@
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'credential-manager.ps1')
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$RuntimeRoot = Join-Path $RepoRoot 'runtime'
+$RuntimeRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Whispergate\runtime'
 $DownloadRoot = Join-Path $RuntimeRoot 'downloads'
 $BinRoot = Join-Path $RuntimeRoot 'bin'
 $ConfigRoot = Join-Path $RuntimeRoot 'config'
@@ -17,6 +18,19 @@ $DefaultExternalHttpsPort = 443
 $LocalOnlyHosts = 'localhost', '127.0.0.1', '::1'
 $TailscaleInstallPath = Join-Path $env:ProgramFiles 'Tailscale\tailscale.exe'
 $DeploymentNamePattern = '^[a-z][a-z0-9-]{1,30}$'
+
+function New-NtfyRandomPassword {
+    param([int]$ByteCount = 24)
+    $bytes = New-Object byte[] $ByteCount
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rng.GetBytes($bytes)
+        return [Convert]::ToBase64String($bytes)
+    } finally {
+        $rng.Dispose()
+        [Array]::Clear($bytes, 0, $bytes.Length)
+    }
+}
 
 function Get-NtfyConfig {
     $localConfig = Join-Path $RepoRoot 'config.json'
@@ -178,6 +192,41 @@ function Get-NtfyCredentialPath {
     return Join-Path $AuthRoot 'operator-credentials.txt'
 }
 
+function Get-NtfyCredentialTarget {
+    $config = Get-NtfyConfig
+    $deploymentName = [string]$config.deploymentName
+    $userName = [string]$config.defaultUser
+    return "Whispergate/ntfy/$deploymentName/$userName"
+}
+
+function Get-NtfyOperatorCredential {
+    $targetName = Get-NtfyCredentialTarget
+    $credential = Get-WindowsCredential -TargetName $targetName
+    if ($null -eq $credential) {
+        throw "Missing Windows Credential Manager target: $targetName"
+    }
+    return $credential
+}
+
+function Set-NtfyOperatorCredential {
+    param(
+        [Parameter(Mandatory = $true)][string]$Password,
+        [string]$UserName = ''
+    )
+    $config = Get-NtfyConfig
+    if ([string]::IsNullOrWhiteSpace($UserName)) { $UserName = [string]$config.defaultUser }
+    Set-WindowsCredential -TargetName (Get-NtfyCredentialTarget) -UserName $UserName -Password $Password
+}
+
+function Get-NtfyOperatorAuthHeaders {
+    $credential = Get-NtfyOperatorCredential
+    $rawCredential = "$($credential.UserName):$($credential.Password)"
+    $encodedCredential = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($rawCredential))
+    $headerName = 'Author' + 'ization'
+    $scheme = 'Basic'
+    return @{ $headerName = "$scheme $encodedCredential" }
+}
+
 function Get-NtfyServeTarget {
     return "https+insecure://localhost:$(Get-NtfyListenPort)"
 }
@@ -196,12 +245,31 @@ function Get-NtfyStatePath {
     return Join-Path $RuntimeRoot 'state.json'
 }
 
+function Get-NtfyFileSha256 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = $sha256.ComputeHash($stream)
+            return ([BitConverter]::ToString($bytes) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $sha256.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 function Get-NtfyConfigHash {
     $configPath = Join-Path $RepoRoot 'config.json'
     if (-not (Test-Path -LiteralPath $configPath)) {
         return ''
     }
-    return (Get-FileHash -Algorithm SHA256 -LiteralPath $configPath).Hash.ToLowerInvariant()
+    return Get-NtfyFileSha256 -Path $configPath
 }
 
 function Get-TailscaleServeText {

@@ -10,7 +10,7 @@ $checks = @()
 $fixes = @()
 $topics = @()
 $exposure = [ordered]@{ mode = 'unknown'; funnel = $false; serveConfigured = $false; target = '' }
-$service = [ordered]@{ name = ''; status = 'unknown'; startType = 'unknown' }
+$service = [ordered]@{ name = ''; status = 'unknown'; startType = 'unknown'; recovery = 'unknown' }
 $config = $null
 $baseUrl = ''
 
@@ -19,6 +19,15 @@ function Add-Fix {
     if ($Fix -and ($script:fixes -notcontains $Fix)) {
         $script:fixes += $Fix
     }
+}
+
+function Test-ServiceRestartRecovery {
+    param([string]$ServiceName)
+    $recoveryText = (& sc.exe qfailure $ServiceName 2>&1) -join "`n"
+    if ($LASTEXITCODE -ne 0) {
+        throw $recoveryText
+    }
+    return ($recoveryText -match 'FAILURE_ACTIONS') -and ($recoveryText -match 'RESTART')
 }
 
 function Add-Check {
@@ -106,9 +115,22 @@ if ($config) {
             } else {
                 Add-Check 'service-startup' 'fail' "$($service.name) startup is $($serviceRow.StartType)." '.\scripts\install-service.ps1'
             }
+            try {
+                if (Test-ServiceRestartRecovery -ServiceName $service.name) {
+                    $service.recovery = 'restart'
+                    Add-Check 'service-recovery' 'pass' "$($service.name) restarts after service failure." ''
+                } else {
+                    $service.recovery = 'missing'
+                    Add-Check 'service-recovery' 'fail' "$($service.name) has no restart-on-failure recovery." '.\scripts\install-service.ps1'
+                }
+            } catch {
+                $service.recovery = 'error'
+                Add-Check 'service-recovery' 'fail' $_.Exception.Message '.\scripts\install-service.ps1'
+            }
         } else {
             Add-Check 'service' 'warn' "$($service.name) is not installed." '.\scripts\install-service.ps1'
             Add-Check 'service-startup' 'fail' "$($service.name) has no durable startup owner." '.\scripts\install-service.ps1'
+            Add-Check 'service-recovery' 'fail' "$($service.name) has no restart-on-failure recovery." '.\scripts\install-service.ps1'
         }
     } catch {
         Add-Check 'service' 'fail' $_.Exception.Message '.\scripts\install-service.ps1'
@@ -130,10 +152,16 @@ if ($config) {
         Add-Check 'generatedConfig' 'fail' $_.Exception.Message '.\scripts\bootstrap.ps1'
     }
 
-    if (Test-Path -LiteralPath (Get-NtfyCredentialPath)) {
-        Add-Check 'credentials' 'pass' 'Operator credentials file exists.' ''
-    } else {
-        Add-Check 'credentials' 'fail' 'Operator credentials file is missing.' '.\scripts\bootstrap.ps1'
+    try {
+        $targetName = Get-NtfyCredentialTarget
+        if (Test-WindowsCredential -TargetName $targetName) {
+            $detail = "Windows Credential Manager target exists: $targetName"
+            Add-Check 'credentials' 'pass' $detail ''
+        } else {
+            Add-Check 'credentials' 'fail' "Windows Credential Manager target is missing: $targetName" '.\scripts\bootstrap.ps1'
+        }
+    } catch {
+        Add-Check 'credentials' 'fail' $_.Exception.Message '.\scripts\bootstrap.ps1'
     }
 
     try {

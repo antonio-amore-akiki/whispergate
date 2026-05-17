@@ -1,0 +1,22 @@
+{
+  "commands": [
+    {
+      "kind": "check",
+      "cmd": "powershell -NoProfile -File scripts/check-public-safety.ps1"
+    },
+    {
+      "kind": "release",
+      "cmd": "powershell -NoProfile -File scripts/build-release.ps1"
+    }
+  ],
+  "harnesses": [
+    {
+      "name": "release-package",
+      "command": "powershell -NoProfile -File scripts/build-release.ps1",
+      "player_facing_end_game": "Windows users get source ZIP plus setup EXE from tracked source only.",
+      "exact_trigger": "Run scripts/build-release.ps1 from the repository root.",
+      "executable_proof": "Release script exits 0 after public safety scan and package creation.",
+      "fail_state": "Script exits nonzero or safety scan rejects bundled runtime/private files."
+    }
+  ]
+}
