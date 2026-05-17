@@ -16,7 +16,7 @@ $zipPath = Join-Path $OutputRoot "whispergate-$commit.zip"
 if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
 & git -C $RepoRoot archive --format=zip --output $zipPath HEAD
 if ($LASTEXITCODE -ne 0) { throw 'git archive failed.' }
-$hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
+$hash = Get-NtfyFileSha256 -Path $zipPath
 $checksumPath = "$zipPath.sha256"
 Set-Content -LiteralPath $checksumPath -Encoding ascii -Value "$hash  $(Split-Path -Leaf $zipPath)"
 Write-Output "Release package: $zipPath"

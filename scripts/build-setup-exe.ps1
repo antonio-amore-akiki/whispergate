@@ -67,7 +67,7 @@ if (-not (Test-Path -LiteralPath $builtExe)) {
 $commit = (& git -C $RepoRoot rev-parse --short HEAD).Trim()
 $releaseExe = Join-Path $OutputRoot "WhispergateSetup-$commit.exe"
 Copy-Item -LiteralPath $builtExe -Destination $releaseExe -Force
-$hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $releaseExe).Hash.ToLowerInvariant()
+$hash = Get-NtfyFileSha256 -Path $releaseExe
 $checksumPath = "$releaseExe.sha256"
 Set-Content -LiteralPath $checksumPath -Encoding ascii -Value "$hash  $(Split-Path -Leaf $releaseExe)"
 Write-Output "Setup EXE: $releaseExe"

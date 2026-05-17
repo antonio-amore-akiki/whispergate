@@ -29,7 +29,7 @@ $expected = Get-Content -LiteralPath $checksumsPath |
 if (-not $expected) {
     throw "Checksum entry missing for $zipName"
 }
-$actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath).Hash.ToLowerInvariant()
+$actual = Get-NtfyFileSha256 -Path $zipPath
 if ($actual -ne $expected) {
     throw "Checksum mismatch for $zipName"
 }

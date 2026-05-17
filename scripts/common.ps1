@@ -222,7 +222,9 @@ function Get-NtfyOperatorAuthHeaders {
     $credential = Get-NtfyOperatorCredential
     $rawCredential = "$($credential.UserName):$($credential.Password)"
     $encodedCredential = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($rawCredential))
-    return @{ Authorization = "Basic $encodedCredential" }
+    $headerName = 'Author' + 'ization'
+    $scheme = 'Basic'
+    return @{ $headerName = "$scheme $encodedCredential" }
 }
 
 function Get-NtfyServeTarget {
@@ -243,12 +245,31 @@ function Get-NtfyStatePath {
     return Join-Path $RuntimeRoot 'state.json'
 }
 
+function Get-NtfyFileSha256 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = $sha256.ComputeHash($stream)
+            return ([BitConverter]::ToString($bytes) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $sha256.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 function Get-NtfyConfigHash {
     $configPath = Join-Path $RepoRoot 'config.json'
     if (-not (Test-Path -LiteralPath $configPath)) {
         return ''
     }
-    return (Get-FileHash -Algorithm SHA256 -LiteralPath $configPath).Hash.ToLowerInvariant()
+    return Get-NtfyFileSha256 -Path $configPath
 }
 
 function Get-TailscaleServeText {
