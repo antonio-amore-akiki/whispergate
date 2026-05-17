@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'credential-manager.ps1')
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$RuntimeRoot = Join-Path $RepoRoot 'runtime'
+$RuntimeRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Whispergate\runtime'
 $DownloadRoot = Join-Path $RuntimeRoot 'downloads'
 $BinRoot = Join-Path $RuntimeRoot 'bin'
 $ConfigRoot = Join-Path $RuntimeRoot 'config'

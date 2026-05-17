@@ -13,9 +13,9 @@ if (-not $OutputRoot) {
 
 $dotnetCommand = Get-Command $DotNetExe -ErrorAction SilentlyContinue
 if (-not $dotnetCommand) {
-    $repoDotNet = Join-Path $RepoRoot 'runtime/dotnet/dotnet.exe'
-    if (Test-Path -LiteralPath $repoDotNet) {
-        $dotnetCommand = Get-Command $repoDotNet
+    $runtimeDotNet = Join-Path $RuntimeRoot 'dotnet/dotnet.exe'
+    if (Test-Path -LiteralPath $runtimeDotNet) {
+        $dotnetCommand = Get-Command $runtimeDotNet
     } else {
         throw 'dotnet SDK is required to build WhispergateSetup.exe.'
     }
@@ -25,12 +25,12 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
 $sdkList = & $dotnetCommand.Source --list-sdks
 if ($LASTEXITCODE -ne 0 -or -not $sdkList) {
-    $repoDotNet = Join-Path $RepoRoot 'runtime/dotnet/dotnet.exe'
-    if (-not (Test-Path -LiteralPath $repoDotNet)) {
+    $runtimeDotNet = Join-Path $RuntimeRoot 'dotnet/dotnet.exe'
+    if (-not (Test-Path -LiteralPath $runtimeDotNet)) {
         throw 'dotnet SDK is required. Install .NET 8 SDK or use the GitHub Actions release build.'
     }
 
-    $dotnetCommand = Get-Command $repoDotNet
+    $dotnetCommand = Get-Command $runtimeDotNet
     $sdkList = & $dotnetCommand.Source --list-sdks
     if ($LASTEXITCODE -ne 0 -or -not $sdkList) {
         throw 'dotnet SDK is required. Install .NET 8 SDK or use the GitHub Actions release build.'

@@ -8,8 +8,9 @@ if (-not $ConfirmReset) {
 }
 $resolvedRoot = [System.IO.Path]::GetFullPath($RepoRoot)
 $resolvedRuntime = [System.IO.Path]::GetFullPath($RuntimeRoot)
-if (-not $resolvedRuntime.StartsWith($resolvedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw 'Runtime path is outside repo root.'
+$resolvedLocalAppData = [System.IO.Path]::GetFullPath([Environment]::GetFolderPath('LocalApplicationData'))
+if (-not $resolvedRuntime.StartsWith($resolvedLocalAppData, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Runtime path is outside LocalAppData.'
 }
 Stop-NtfyRepoProcesses
 if (Test-Path -LiteralPath $RuntimeRoot) {
